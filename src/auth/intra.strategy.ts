@@ -6,7 +6,6 @@ import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
 import { catchError, firstValueFrom } from 'rxjs';
 import { AxiosError } from 'axios';
-import { Console } from 'console';
 @Injectable()
 export class IntraStrategy extends PassportStrategy(Strategy, 'intra42') {
   constructor(
@@ -40,6 +39,9 @@ export class IntraStrategy extends PassportStrategy(Strategy, 'intra42') {
           }),
         ),
     );
-    return this.authService.validateUser(data);
+    console.log("c'est bon");
+    return data;
+    // const user = await this.authService.validateUser(data);
+    // return user;
   }
 }

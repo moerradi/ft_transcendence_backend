@@ -19,13 +19,15 @@ enum UserStatus {
 model User {
   id                             Int               @id @default(autoincrement())
   login                          String            @unique
-  intra_id                       String            @unique
+  intra_id                       Int               @unique
   first_name                     String
   last_name                      String
   avatar_url                     String
-  level                          Int
-  exp                            Int
-  two_factor_auth_enabled        Boolean
+  level                          Int               @default(0)
+  exp                            Int               @default(0)
+  read_receipt                   Boolean           @default(true)
+  status                         UserStatus        @default(DEFAULT)
+  two_factor_auth_enabled        Boolean           @default(false)
   two_factor_auth_secret         String?
   two_factor_auth_recovery_codes String[]
   created_at                     DateTime          @default(now())
@@ -37,8 +39,6 @@ model User {
   channel_memberships            Channel_user[]
   sent_messages                  Direct_message[]  @relation("authored")
   received_messages              Direct_message[]  @relation("received")
-  read_receipt                   Boolean
-  status                         UserStatus
 }
 
 model Direct_message {

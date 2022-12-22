@@ -5,6 +5,7 @@ import { PrismaModule } from 'src/prisma/prisma.module';
 import { IntraStrategy } from './intra.strategy';
 import { PassportModule } from '@nestjs/passport';
 import { HttpModule } from '@nestjs/axios';
+import { JwtModule } from '@nestjs/jwt';
 
 @Module({
   controllers: [AuthController],
@@ -17,6 +18,9 @@ import { HttpModule } from '@nestjs/axios';
         timeout: 5000,
         maxRedirects: 5,
       }),
+    }),
+    JwtModule.registerAsync({
+      useFactory: () => ({}),
     }),
   ],
 })
