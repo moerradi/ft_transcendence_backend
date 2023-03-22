@@ -1,136 +1,137 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
+    // This is your Prisma schema file,
+    // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-generator client {
-  provider = "prisma-client-js"
-}
+    generator client {
+    provider = "prisma-client-js"
+    }
 
-datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-}
+    datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+    }
 
-enum UserStatus {
-  DEFAULT
-  HIDDEN
-  DO_NOT_DISTURB
-}
+    enum UserStatus {
+    DEFAULT
+    HIDDEN
+    DO_NOT_DISTURB
+    }
 
-model User {
-  id                             Int               @id @default(autoincrement())
-  login                          String            @unique
-  intra_id                       Int               @unique
-  first_name                     String
-  last_name                      String
-  avatar_url                     String
-  level                          Int               @default(0)
-  exp                            Int               @default(0)
-  read_receipt                   Boolean           @default(true)
-  status                         UserStatus        @default(DEFAULT)
-  two_factor_auth_enabled        Boolean           @default(false)
-  two_factor_auth_secret         String?
-  two_factor_auth_recovery_codes String[]
-  created_at                     DateTime          @default(now())
-  updated_at                     DateTime          @updatedAt
-  matches_as_player_one          Match[]           @relation("player_one")
-  matches_as_player_two          Match[]           @relation("player_two")
-  owned_channels                 Channel[]
-  channel_messages               Channel_message[]
-  channel_memberships            Channel_user[]
-  sent_messages                  Direct_message[]  @relation("authored")
-  received_messages              Direct_message[]  @relation("received")
-}
+    model User {
+    id                             Int               @id @default(autoincrement())
+    login                          String            @unique
+    intra_id                       Int               @unique
+    first_name                     String
+    last_name                      String
+    avatar_url                     String
+    level                          Int               @default(0)
+    exp                            Int               @default(0)
+    read_receipt                   Boolean           @default(true)
+    status                         UserStatus        @default(DEFAULT)
+    two_factor_auth_enabled        Boolean           @default(false)
+    two_factor_auth_secret         String?
+    two_factor_auth_recovery_codes String[]
+    refresh_token                  String?
+    created_at                     DateTime          @default(now())
+    updated_at                     DateTime          @updatedAt
+    matches_as_player_one          Match[]           @relation("player_one")
+    matches_as_player_two          Match[]           @relation("player_two")
+    owned_channels                 Channel[]
+    channel_messages               Channel_message[]
+    channel_memberships            Channel_user[]
+    sent_messages                  Direct_message[]  @relation("authored")
+    received_messages              Direct_message[]  @relation("received")
+    }
 
-model Direct_message {
-  id           Int       @id @default(autoincrement())
-  content      String
-  author       User      @relation(fields: [author_id], references: [id], name: "authored")
-  author_id    Int
-  recipient    User      @relation(fields: [recipient_id], references: [id], name: "received")
-  recipient_id Int
-  sent_at      DateTime  @default(now())
-  read_at      DateTime?
-  unsent       Boolean
-}
+    model Direct_message {
+    id           Int       @id @default(autoincrement())
+    content      String
+    author       User      @relation(fields: [author_id], references: [id], name: "authored")
+    author_id    Int
+    recipient    User      @relation(fields: [recipient_id], references: [id], name: "received")
+    recipient_id Int
+    sent_at      DateTime  @default(now())
+    read_at      DateTime?
+    unsent       Boolean
+    }
 
-enum MatchStatus {
-  ONGOING
-  FINISHED
-  CANCELLED
-}
+    enum MatchStatus {
+    ONGOING
+    FINISHED
+    CANCELLED
+    }
 
-model Game_mode {
-  id         Int      @id @default(autoincrement())
-  name       String   @unique
-  config     Json
-  matches    Match[]
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-}
+    model Game_mode {
+    id         Int      @id @default(autoincrement())
+    name       String   @unique
+    config     Json
+    matches    Match[]
+    created_at DateTime @default(now())
+    updated_at DateTime @updatedAt
+    }
 
-model Match {
-  id               Int         @id @default(autoincrement())
-  player_one       User        @relation(fields: [player_one_id], references: [id], name: "player_one")
-  player_one_id    Int
-  player_two       User        @relation(fields: [player_two_id], references: [id], name: "player_two")
-  player_two_id    Int
-  game_mode        Game_mode   @relation(fields: [game_mode_id], references: [id])
-  game_mode_id     Int
-  player_one_score Int
-  player_two_score Int
-  status           MatchStatus
-  started_at       DateTime
-  finished_at      DateTime
-}
+    model Match {
+    id               Int         @id @default(autoincrement())
+    player_one       User        @relation(fields: [player_one_id], references: [id], name: "player_one")
+    player_one_id    Int
+    player_two       User        @relation(fields: [player_two_id], references: [id], name: "player_two")
+    player_two_id    Int
+    game_mode        Game_mode   @relation(fields: [game_mode_id], references: [id])
+    game_mode_id     Int
+    player_one_score Int
+    player_two_score Int
+    status           MatchStatus
+    started_at       DateTime
+    finished_at      DateTime
+    }
 
-enum ChannelType {
-  PRIVATE
-  PUBLIC
-  PROTECTED
-}
+    enum ChannelType {
+    PRIVATE
+    PUBLIC
+    PROTECTED
+    }
 
-model Channel {
-  id         Int               @id @default(autoincrement())
-  name       String            @unique
-  owner      User              @relation(fields: [owner_id], references: [id])
-  owner_id   Int
-  icon_url   String
-  type       ChannelType
-  password   String?
-  messages   Channel_message[]
-  users      Channel_user[]
-  created_at DateTime          @default(now())
-  updated_at DateTime          @updatedAt
-}
+    model Channel {
+    id         Int               @id @default(autoincrement())
+    name       String            @unique
+    owner      User              @relation(fields: [owner_id], references: [id])
+    owner_id   Int
+    icon_url   String
+    type       ChannelType
+    password   String?
+    messages   Channel_message[]
+    users      Channel_user[]
+    created_at DateTime          @default(now())
+    updated_at DateTime          @updatedAt
+    }
 
-enum ChannelUserStatus {
-  REQUESTED
-  INVITED
-  BANNED
-  MEMBER
-  ADMIN
-}
+    enum ChannelUserStatus {
+    REQUESTED
+    INVITED
+    BANNED
+    MEMBER
+    ADMIN
+    }
 
-model Channel_user {
-  user        User              @relation(fields: [user_id], references: [id])
-  user_id     Int
-  channel     Channel           @relation(fields: [channel_id], references: [id])
-  channel_id  Int
-  status      ChannelUserStatus
-  muted_until DateTime?
-  created_at  DateTime          @default(now())
-  updated_at  DateTime          @updatedAt
+    model Channel_user {
+    user        User              @relation(fields: [user_id], references: [id])
+    user_id     Int
+    channel     Channel           @relation(fields: [channel_id], references: [id])
+    channel_id  Int
+    status      ChannelUserStatus
+    muted_until DateTime?
+    created_at  DateTime          @default(now())
+    updated_at  DateTime          @updatedAt
 
-  @@id([user_id, channel_id], name: "cid")
-}
+    @@id([user_id, channel_id], name: "cid")
+    }
 
-model Channel_message {
-  id         Int      @id @default(autoincrement())
-  channel    Channel  @relation(fields: [channel_id], references: [id])
-  channel_id Int
-  author     User     @relation(fields: [author_id], references: [id])
-  author_id  Int
-  content    String
-  sent_at    DateTime @default(now())
-  unsent     Boolean
-}
+    model Channel_message {
+    id         Int      @id @default(autoincrement())
+    channel    Channel  @relation(fields: [channel_id], references: [id])
+    channel_id Int
+    author     User     @relation(fields: [author_id], references: [id])
+    author_id  Int
+    content    String
+    sent_at    DateTime @default(now())
+    unsent     Boolean
+    }

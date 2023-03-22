@@ -39,9 +39,6 @@ export class IntraStrategy extends PassportStrategy(Strategy, 'intra42') {
           }),
         ),
     );
-    console.log("c'est bon");
     return data;
-    // const user = await this.authService.validateUser(data);
-    // return user;
   }
 }

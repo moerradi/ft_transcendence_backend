@@ -6,10 +6,17 @@ import { IntraStrategy } from './intra.strategy';
 import { PassportModule } from '@nestjs/passport';
 import { HttpModule } from '@nestjs/axios';
 import { JwtModule } from '@nestjs/jwt';
+import { jwtAccessTokenStrategy } from './strategies/jwtaccess.strategy';
+import { jwtRefreshTokenStrategy } from './strategies/jwtrefresh.strategy';
 
 @Module({
   controllers: [AuthController],
-  providers: [AuthService, IntraStrategy],
+  providers: [
+    AuthService,
+    IntraStrategy,
+    jwtAccessTokenStrategy,
+    jwtRefreshTokenStrategy,
+  ],
   imports: [
     PrismaModule,
     PassportModule,

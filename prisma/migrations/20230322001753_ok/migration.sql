@@ -14,19 +14,19 @@ CREATE TYPE "ChannelUserStatus" AS ENUM ('REQUESTED', 'INVITED', 'BANNED', 'MEMB
 CREATE TABLE "User" (
     "id" SERIAL NOT NULL,
     "login" TEXT NOT NULL,
-    "intra_id" TEXT NOT NULL,
+    "intra_id" INTEGER NOT NULL,
     "first_name" TEXT NOT NULL,
     "last_name" TEXT NOT NULL,
     "avatar_url" TEXT NOT NULL,
-    "level" INTEGER NOT NULL,
-    "exp" INTEGER NOT NULL,
-    "two_factor_auth_enabled" BOOLEAN NOT NULL,
+    "level" INTEGER NOT NULL DEFAULT 0,
+    "exp" INTEGER NOT NULL DEFAULT 0,
+    "read_receipt" BOOLEAN NOT NULL DEFAULT true,
+    "status" "UserStatus" NOT NULL DEFAULT 'DEFAULT',
+    "two_factor_auth_enabled" BOOLEAN NOT NULL DEFAULT false,
     "two_factor_auth_secret" TEXT,
     "two_factor_auth_recovery_codes" TEXT[],
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
-    "read_receipt" BOOLEAN NOT NULL,
-    "status" "UserStatus" NOT NULL,
 
     CONSTRAINT "User_pkey" PRIMARY KEY ("id")
 );
