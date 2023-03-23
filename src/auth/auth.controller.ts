@@ -1,7 +1,6 @@
 import { Controller, Post, Req, Res, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { Get } from '@nestjs/common';
-import { Response } from 'express';
 import { IntraGuard } from './intra.guard';
 import { IntraUser } from 'src/types';
 import { User } from '@prisma/client';
@@ -19,23 +18,19 @@ export class AuthController {
 
   @Get('callback')
   @UseGuards(IntraGuard)
-  async callback(
-    @Req() req: Request & { user: IntraUser },
-    // @Res() res: Response,
-  ) {
+  async callback(@Req() req: Request & { user: IntraUser }) {
     const user = await this.authService.validateUser(req.user);
-    // sign user using jwt
-    const token = this.authService.signUser(user);
+    const token = await this.authService.signUser(user);
     console.log(token);
-    return token;
-    // redirect to frontend with token
-    // res.redirect(301, `${process.env.FRONTEND_URL}/auth?token=${token}`);
   }
 
   @Post('refresh')
   @UseGuards(JwtRefreshTokenGuard)
   async refresh(@Req() req: any) {
-    const token = this.authService.refreshUser(req.id, req.refreshToken);
+    const token = this.authService.refreshUser(
+      req.user.id,
+      req.user.refreshToken,
+    );
     return token;
   }
 

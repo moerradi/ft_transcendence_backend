@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { User } from '@prisma/client';
@@ -22,7 +22,6 @@ export class AuthService {
       },
     });
     if (!existingUser) {
-      console.log('existingUser');
       const newUser = await this.prisma.user.create({
         data: {
           intra_id: id,
@@ -34,11 +33,25 @@ export class AuthService {
       });
       return newUser;
     }
-    console.log('newUser');
     return existingUser;
   }
 
-  createRefreshToken(user: User) {
+  async createAccessToken(user: User) {
+    const accessToken = this.jwtService.sign(
+      {
+        id: user.id,
+        login: user.login,
+      },
+      {
+        expiresIn: '15m',
+        secret: this.configService.get('JWT_ACCESS_TOKEN_SECRET'),
+      },
+    );
+    console.log('accces token', accessToken);
+    return accessToken;
+  }
+
+  async createRefreshToken(user: User) {
     const payload = {
       id: user.id,
       login: user.login,
@@ -47,12 +60,13 @@ export class AuthService {
       expiresIn: '7d',
       secret: this.configService.get('JWT_REFRESH_TOKEN_SECRET'),
     });
-    this.prisma.user.update({
+    const hashedRefreshToken = await this.hashData(refreshToken);
+    await this.prisma.user.update({
       where: {
         id: user.id,
       },
       data: {
-        refresh_token: refreshToken,
+        refresh_token: hashedRefreshToken,
       },
     });
     return refreshToken;
@@ -62,16 +76,9 @@ export class AuthService {
     return argon2.hash(data);
   }
 
-  signUser(user: User) {
-    const payload = {
-      id: user.id,
-      login: user.login,
-    };
-    const accessToken = this.jwtService.sign(payload, {
-      expiresIn: '15s',
-      secret: this.configService.get('JWT_ACCESS_TOKEN_SECRET'),
-    });
-    const refreshToken = this.createRefreshToken(user);
+  async signUser(user: User) {
+    const accessToken = await this.createAccessToken(user);
+    const refreshToken = await this.createRefreshToken(user);
     return {
       accessToken,
       refreshToken,
@@ -84,9 +91,16 @@ export class AuthService {
         id: userId,
       },
     });
-    if (user.refresh_token === refreshToken) {
-      return this.signUser(user);
+    if (!user || !user.refresh_token)
+      throw new ForbiddenException('Access Denied');
+    const refreshTokenMatches = await argon2.verify(
+      user.refresh_token,
+      refreshToken,
+    );
+    if (refreshTokenMatches) {
+      this.createAccessToken(user);
     }
+    return null;
   }
 
   testAccess(userId: number) {
