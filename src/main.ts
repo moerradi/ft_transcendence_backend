@@ -3,6 +3,7 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import * as cookieParser from 'cookie-parser';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -19,6 +20,8 @@ async function bootstrap() {
   }
   // add whitelist to validation pipe
   app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
+  // add cookie parser
+  app.use(cookieParser());
   // configruate swagger
   const options = new DocumentBuilder()
     .setTitle('Transcendance API')

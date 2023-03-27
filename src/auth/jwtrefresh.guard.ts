@@ -1,6 +1,10 @@
 // jwt-refresh-token-auth.guard.ts
-import { Injectable } from '@nestjs/common';
+import { ExecutionContext, Injectable } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 
 @Injectable()
-export class JwtRefreshTokenGuard extends AuthGuard('jwt-refresh-token') {}
+export class JwtRefreshTokenGuard extends AuthGuard('jwt-refresh-token') {
+  canActivate(context: ExecutionContext) {
+    return super.canActivate(context);
+  }
+}
