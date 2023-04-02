@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ExecutionContext } from '@nestjs/common';
 
@@ -10,6 +10,12 @@ export class JwtAccessTokenGuard extends AuthGuard('jwt-access-token') {
       return false;
     }
     const request = context.switchToHttp().getRequest();
-    return !request.user.twofa;
+    if (request.user.twofa) {
+      throw new ForbiddenException(
+        'Congrats you broke the matrix, haha just joking complete your 2fa flow idiot !',
+      );
+    }
+
+    return true;
   }
 }

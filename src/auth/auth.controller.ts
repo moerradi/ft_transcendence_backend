@@ -12,7 +12,6 @@ import { Get } from '@nestjs/common';
 import { IntraGuard } from './guards/intra.guard';
 import { IntraUser } from 'src/types';
 import { User } from '@prisma/client';
-import { JwtRefreshTokenGuard } from './guards/jwtrefresh.guard';
 import { JwtAccessTokenGuard } from './guards/jwtaccess.guard';
 import { ConfigService } from '@nestjs/config';
 import { JwtAccessTokenNo2FAGuard } from './guards/jwtAccessNo2FA.guard';
@@ -37,27 +36,17 @@ export class AuthController {
     @Res() res: Response,
   ) {
     const user = await this.authService.validateUser(req.user);
-    const tokens = await this.authService.signUser(user, false);
+    const tokens = await this.authService.signUser(
+      user,
+      user.two_factor_auth_enabled,
+    );
     const frontEndUrl = this.configService.get('FRONTEND_URL');
 
+    res.cookie('accessToken', tokens.accessToken);
     if (user.two_factor_auth_enabled) {
-      res.cookie('accessToken', tokens.accessToken);
       res.cookie('2fa', 'true');
-    } else {
-      res.cookie('accessToken', tokens.accessToken);
-      res.cookie('refreshToken', tokens.refreshToken);
     }
     res.redirect(frontEndUrl);
-  }
-
-  @Post('refresh')
-  @UseGuards(JwtRefreshTokenGuard)
-  async refresh(@Req() req: any) {
-    const token = await this.authService.refreshUser(
-      req.user.id,
-      req.user.refreshToken,
-    );
-    return token;
   }
 
   @Post('enable2fa')
@@ -82,7 +71,7 @@ export class AuthController {
     if (!is2faValid) {
       throw new ForbiddenException('Invalid 2FA code');
     }
-    return await this.authService.signUser(req.user, true);
+    return await this.authService.signUser(req.user, false);
   }
 
   @Post('confirm2fa')
@@ -97,13 +86,9 @@ export class AuthController {
       return {
         success: true,
       };
+    } else {
+      throw new ForbiddenException('Invalid 2FA code');
     }
-  }
-
-  @Get('logout')
-  @UseGuards(JwtAccessTokenGuard)
-  async logout(@Req() req: Request & { user: User }) {
-    return await this.authService.logout(req.user.id);
   }
 
   @Get('testaccess')
