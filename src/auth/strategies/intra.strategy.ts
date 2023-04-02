@@ -1,6 +1,5 @@
 import { Strategy } from 'passport-oauth2';
 import { Injectable } from '@nestjs/common';
-import { AuthService } from './auth.service';
 import { PassportStrategy } from '@nestjs/passport';
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
@@ -9,7 +8,6 @@ import { AxiosError } from 'axios';
 @Injectable()
 export class IntraStrategy extends PassportStrategy(Strategy, 'intra42') {
   constructor(
-    private readonly authService: AuthService,
     private readonly configService: ConfigService,
     private readonly httpService: HttpService,
   ) {

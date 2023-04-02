@@ -1,8 +1,11 @@
 -- CreateEnum
-CREATE TYPE "UserStatus" AS ENUM ('DEFAULT', 'HIDDEN', 'DO_NOT_DISTURB');
+CREATE TYPE "FriendshipStatus" AS ENUM ('PENDING', 'ACCEPTED', 'BLOCKED');
 
 -- CreateEnum
 CREATE TYPE "MatchStatus" AS ENUM ('ONGOING', 'FINISHED', 'CANCELLED');
+
+-- CreateEnum
+CREATE TYPE "GameMode" AS ENUM ('Frisky', 'Fierce', 'Fast');
 
 -- CreateEnum
 CREATE TYPE "ChannelType" AS ENUM ('PRIVATE', 'PUBLIC', 'PROTECTED');
@@ -18,17 +21,24 @@ CREATE TABLE "User" (
     "first_name" TEXT NOT NULL,
     "last_name" TEXT NOT NULL,
     "avatar_url" TEXT NOT NULL,
-    "level" INTEGER NOT NULL DEFAULT 0,
-    "exp" INTEGER NOT NULL DEFAULT 0,
-    "read_receipt" BOOLEAN NOT NULL DEFAULT true,
-    "status" "UserStatus" NOT NULL DEFAULT 'DEFAULT',
     "two_factor_auth_enabled" BOOLEAN NOT NULL DEFAULT false,
     "two_factor_auth_secret" TEXT,
-    "two_factor_auth_recovery_codes" TEXT[],
+    "refresh_token" TEXT,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "User_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Friendship" (
+    "requester_id" INTEGER NOT NULL,
+    "addressee_id" INTEGER NOT NULL,
+    "status" "FriendshipStatus" NOT NULL,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Friendship_pkey" PRIMARY KEY ("requester_id","addressee_id")
 );
 
 -- CreateTable
@@ -38,21 +48,9 @@ CREATE TABLE "Direct_message" (
     "author_id" INTEGER NOT NULL,
     "recipient_id" INTEGER NOT NULL,
     "sent_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "read_at" TIMESTAMP(3),
     "unsent" BOOLEAN NOT NULL,
 
     CONSTRAINT "Direct_message_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "Game_mode" (
-    "id" SERIAL NOT NULL,
-    "name" TEXT NOT NULL,
-    "config" JSONB NOT NULL,
-    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMP(3) NOT NULL,
-
-    CONSTRAINT "Game_mode_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -60,7 +58,7 @@ CREATE TABLE "Match" (
     "id" SERIAL NOT NULL,
     "player_one_id" INTEGER NOT NULL,
     "player_two_id" INTEGER NOT NULL,
-    "game_mode_id" INTEGER NOT NULL,
+    "game_mode" "GameMode" NOT NULL,
     "player_one_score" INTEGER NOT NULL,
     "player_two_score" INTEGER NOT NULL,
     "status" "MatchStatus" NOT NULL,
@@ -89,7 +87,7 @@ CREATE TABLE "Channel_user" (
     "user_id" INTEGER NOT NULL,
     "channel_id" INTEGER NOT NULL,
     "status" "ChannelUserStatus" NOT NULL,
-    "muted_until" TIMESTAMP(3),
+    "muted_until_time" TIMESTAMP(3),
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
 
@@ -114,11 +112,11 @@ CREATE UNIQUE INDEX "User_login_key" ON "User"("login");
 -- CreateIndex
 CREATE UNIQUE INDEX "User_intra_id_key" ON "User"("intra_id");
 
--- CreateIndex
-CREATE UNIQUE INDEX "Game_mode_name_key" ON "Game_mode"("name");
+-- AddForeignKey
+ALTER TABLE "Friendship" ADD CONSTRAINT "Friendship_requester_id_fkey" FOREIGN KEY ("requester_id") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
--- CreateIndex
-CREATE UNIQUE INDEX "Channel_name_key" ON "Channel"("name");
+-- AddForeignKey
+ALTER TABLE "Friendship" ADD CONSTRAINT "Friendship_addressee_id_fkey" FOREIGN KEY ("addressee_id") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Direct_message" ADD CONSTRAINT "Direct_message_author_id_fkey" FOREIGN KEY ("author_id") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -131,9 +129,6 @@ ALTER TABLE "Match" ADD CONSTRAINT "Match_player_one_id_fkey" FOREIGN KEY ("play
 
 -- AddForeignKey
 ALTER TABLE "Match" ADD CONSTRAINT "Match_player_two_id_fkey" FOREIGN KEY ("player_two_id") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "Match" ADD CONSTRAINT "Match_game_mode_id_fkey" FOREIGN KEY ("game_mode_id") REFERENCES "Game_mode"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Channel" ADD CONSTRAINT "Channel_owner_id_fkey" FOREIGN KEY ("owner_id") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

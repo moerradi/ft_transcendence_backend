@@ -9,13 +9,13 @@ import {
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { Get } from '@nestjs/common';
-import { IntraGuard } from './intra.guard';
+import { IntraGuard } from './guards/intra.guard';
 import { IntraUser } from 'src/types';
 import { User } from '@prisma/client';
-import { JwtRefreshTokenGuard } from './jwtrefresh.guard';
-import { JwtAccessTokenGuard } from './jwtaccess.guard';
+import { JwtRefreshTokenGuard } from './guards/jwtrefresh.guard';
+import { JwtAccessTokenGuard } from './guards/jwtaccess.guard';
 import { ConfigService } from '@nestjs/config';
-import { JwtAccessTokenNo2FAGuard } from './jwtAccessNo2FA.guard';
+import { JwtAccessTokenNo2FAGuard } from './guards/jwtAccessNo2FA.guard';
 import { Response } from 'express';
 
 @Controller('auth')
