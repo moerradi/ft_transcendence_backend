@@ -19,7 +19,6 @@ model User {
   avatar_url                     String
   two_factor_auth_enabled        Boolean           @default(false)
   two_factor_auth_secret         String?
-  refresh_token                  String?
   created_at                     DateTime          @default(now())
   updated_at                     DateTime          @updatedAt
   matches_as_player_one          Match[]           @relation("player_one")

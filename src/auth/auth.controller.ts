@@ -16,6 +16,8 @@ import { JwtAccessTokenGuard } from './guards/jwtaccess.guard';
 import { ConfigService } from '@nestjs/config';
 import { JwtAccessTokenNo2FAGuard } from './guards/jwtAccessNo2FA.guard';
 import { Response } from 'express';
+import { userPayload } from './types/userPayload';
+import twoFaDto from './dto/twoFa.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -64,10 +66,13 @@ export class AuthController {
   @Post('verify2fa')
   @UseGuards(JwtAccessTokenNo2FAGuard)
   async verify2fa(
-    @Req() req: Request & { user: User },
-    @Body('code') code: string,
+    @Req() req: Request & { user: userPayload },
+    @Body() twoFaBody: twoFaDto,
   ) {
-    const is2faValid = await this.authService.verify2FA(req.user.id, code);
+    const is2faValid = await this.authService.verify2FA(
+      req.user.id,
+      twoFaBody.code,
+    );
     if (!is2faValid) {
       throw new ForbiddenException('Invalid 2FA code');
     }
@@ -77,7 +82,7 @@ export class AuthController {
   @Post('confirm2fa')
   @UseGuards(JwtAccessTokenGuard)
   async confirm2fa(
-    @Req() req: Request & { user: User },
+    @Req() req: Request & { user: userPayload },
     @Body('code') token: string,
   ) {
     if (token === 'undefined') throw new ForbiddenException('Invalid 2FA code');
@@ -93,7 +98,7 @@ export class AuthController {
 
   @Get('testaccess')
   @UseGuards(JwtAccessTokenGuard)
-  async testaccess(@Req() req: Request & { user: User }) {
+  async testaccess(@Req() req: Request & { user: userPayload }) {
     return await this.authService.testAccess(req.user.id);
   }
 }

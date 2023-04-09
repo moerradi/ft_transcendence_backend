@@ -9,6 +9,7 @@ import { User } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { IntraUser } from 'src/types';
 import * as speakeasy from 'speakeasy';
+import { userPayload } from './types/userPayload';
 
 @Injectable()
 export class AuthService {
@@ -42,7 +43,7 @@ export class AuthService {
     return existingUser;
   }
 
-  async createAccessToken(user: User, twofa: boolean) {
+  async createAccessToken(user: userPayload, twofa: boolean) {
     const accessToken = this.jwtService.sign(
       {
         id: user.id,
@@ -57,7 +58,7 @@ export class AuthService {
     return accessToken;
   }
 
-  async signUser(user: User, twofa: boolean) {
+  async signUser(user: userPayload, twofa: boolean) {
     const accessToken = await this.createAccessToken(user, twofa);
     return { accessToken };
   }
