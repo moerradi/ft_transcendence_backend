@@ -18,6 +18,8 @@ import { JwtAccessTokenNo2FAGuard } from './guards/jwtAccessNo2FA.guard';
 import { Response } from 'express';
 import { userPayload } from './types/userPayload';
 import twoFaDto from './dto/twoFa.dto';
+import { ApiResponse } from '@nestjs/swagger';
+import UserDto from './dto/user.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -37,16 +39,19 @@ export class AuthController {
     @Req() req: Request & { user: IntraUser },
     @Res() res: Response,
   ) {
-    const user = await this.authService.validateUser(req.user);
+    const { user, firstLogin } = await this.authService.validateUser(req.user);
     const tokens = await this.authService.signUser(
       user,
       user.two_factor_auth_enabled,
     );
     const frontEndUrl = this.configService.get('FRONTEND_URL');
 
-    res.cookie('accessToken', tokens.accessToken);
+    res.cookie('access_token', tokens.accessToken);
     if (user.two_factor_auth_enabled) {
       res.cookie('2fa', 'true');
+    }
+    if (firstLogin) {
+      res.cookie('first_login', 'true');
     }
     res.redirect(frontEndUrl);
   }
@@ -96,9 +101,14 @@ export class AuthController {
     }
   }
 
-  @Get('testaccess')
+  @ApiResponse({
+    status: 200,
+    description: 'The found record',
+    type: UserDto,
+  })
+  @Get('me')
   @UseGuards(JwtAccessTokenGuard)
-  async testaccess(@Req() req: Request & { user: userPayload }) {
-    return await this.authService.testAccess(req.user.id);
+  async testaccess(@Req() req: Request & { user: userPayload }): Promise<User> {
+    return await this.authService.getMe(req.user.id);
   }
 }

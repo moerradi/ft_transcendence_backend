@@ -38,9 +38,9 @@ export class AuthService {
           avatar_url: image.versions.medium,
         },
       });
-      return newUser;
+      return { user: newUser, firstLogin: true };
     }
-    return existingUser;
+    return { user: existingUser, firstLogin: false };
   }
 
   async createAccessToken(user: userPayload, twofa: boolean) {
@@ -147,7 +147,7 @@ export class AuthService {
     return isValid;
   }
 
-  async testAccess(userId: number) {
+  async getMe(userId: number) {
     const user = await this.prisma.user.findUnique({
       where: {
         id: userId,
