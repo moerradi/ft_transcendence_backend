@@ -1,10 +1,56 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { Friendship, User } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class ProfileService {
   // add prisma injection
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private configService: ConfigService,
+  ) {}
+
+  async getFriends(login: string): Promise<User[]> {
+    const user = await this.prisma.user.findUnique({
+      where: { login },
+      include: {
+        sent_requests: {
+          where: { status: 'ACCEPTED' },
+          select: {
+            addressee: {
+              select: {
+                id: true,
+                login: true,
+              },
+            },
+          },
+        },
+        received_requests: {
+          where: { status: 'ACCEPTED' },
+          select: {
+            requester: {
+              select: {
+                id: true,
+                login: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!user) {
+      throw new Error(`User with login "${login}" not found`);
+    }
+
+    const friends = [
+      ...user.sent_requests.map((friendship: any) => friendship.addressee),
+      ...user.received_requests.map((friendship: any) => friendship.requester),
+    ];
+
+    return friends;
+  }
 
   // add method to get profile by username (only public data)
   async getProfile(login: string) {
@@ -15,6 +61,8 @@ export class ProfileService {
         first_name: true,
         last_name: true,
         avatar_url: true,
+        exp: true,
+        level: true,
         matches_as_player_one: {
           select: {
             id: true,
@@ -58,13 +106,16 @@ export class ProfileService {
     ].sort((a, b) => (a.started_at > b.started_at ? -1 : 1));
 
     const last10Matches = matchHistory.slice(0, 10);
-
+    const friends = await this.getFriends(login);
     return {
       login: user.login,
       first_name: user.first_name,
       last_name: user.last_name,
       avatar_url: user.avatar_url,
+      exp: user.exp,
+      level: user.level,
       matchHistory: last10Matches,
+      friends: friends,
     };
   }
 
@@ -202,6 +253,19 @@ export class ProfileService {
     return await this.prisma.user.update({
       where: { id: userId },
       data: { avatar_url },
+    });
+  }
+  async updateProfileLogin(userId: number, login: string) {
+    // check if login is already taken
+    const user = await this.prisma.user.findUnique({
+      where: { login },
+    });
+    if (user) {
+      throw new BadRequestException('Login is already taken');
+    }
+    return await this.prisma.user.update({
+      where: { id: userId },
+      data: { login },
     });
   }
 }

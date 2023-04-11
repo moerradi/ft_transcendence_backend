@@ -11,25 +11,27 @@ datasource db {
 }
 
 model User {
-  id                             Int               @id @default(autoincrement())
-  login                          String            @unique
-  intra_id                       Int               @unique
-  first_name                     String
-  last_name                      String
-  avatar_url                     String
-  two_factor_auth_enabled        Boolean           @default(false)
-  two_factor_auth_secret         String?
-  created_at                     DateTime          @default(now())
-  updated_at                     DateTime          @updatedAt
-  matches_as_player_one          Match[]           @relation("player_one")
-  matches_as_player_two          Match[]           @relation("player_two")
-  owned_channels                 Channel[]
-  channel_messages               Channel_message[]
-  channel_memberships            Channel_user[]
-  sent_requests                  Friendship[]      @relation("FriendshipRequester")
-  received_requests              Friendship[]      @relation("FriendshipAddressee")
-  sent_messages                  Direct_message[]  @relation("authored")
-  received_messages              Direct_message[]  @relation("received")
+  id                      Int               @id @default(autoincrement())
+  login                   String            @unique
+  intra_id                Int               @unique
+  first_name              String
+  last_name               String
+  avatar_url              String
+  level                   Int               @default(0)
+  exp                     Int               @default(0)
+  two_factor_auth_enabled Boolean           @default(false)
+  two_factor_auth_secret  String?
+  created_at              DateTime          @default(now())
+  updated_at              DateTime          @updatedAt
+  matches_as_player_one   Match[]           @relation("player_one")
+  matches_as_player_two   Match[]           @relation("player_two")
+  owned_channels          Channel[]
+  channel_messages        Channel_message[]
+  channel_memberships     Channel_user[]
+  sent_requests           Friendship[]      @relation("FriendshipRequester")
+  received_requests       Friendship[]      @relation("FriendshipAddressee")
+  sent_messages           Direct_message[]  @relation("authored")
+  received_messages       Direct_message[]  @relation("received")
 }
 
 model Friendship {
@@ -51,13 +53,13 @@ enum FriendshipStatus {
 }
 
 model Direct_message {
-  id           Int       @id @default(autoincrement())
+  id           Int      @id @default(autoincrement())
   content      String
-  author       User      @relation(fields: [author_id], references: [id], name: "authored")
+  author       User     @relation(fields: [author_id], references: [id], name: "authored")
   author_id    Int
-  recipient    User      @relation(fields: [recipient_id], references: [id], name: "received")
+  recipient    User     @relation(fields: [recipient_id], references: [id], name: "received")
   recipient_id Int
-  sent_at      DateTime  @default(now())
+  sent_at      DateTime @default(now())
   unsent       Boolean
 }
 

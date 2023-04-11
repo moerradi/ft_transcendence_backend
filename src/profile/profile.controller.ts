@@ -1,5 +1,6 @@
 import {
   BadGatewayException,
+  BadRequestException,
   Body,
   Controller,
   Get,
@@ -20,17 +21,28 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname, join } from 'path';
 import { ProfileUpdateDto } from './dto/profile-update.dto';
+import LoginDto from './dto/login.dto';
+import { ApiResponse } from '@nestjs/swagger';
 
 const avatarInterceptor = FileInterceptor('avatar', {
   storage: diskStorage({
-    destination: join(__dirname, '..', 'public', 'images'),
+    destination: join(__dirname, '..', '..', 'public', 'images'),
     filename: (req, file, callback) => {
-      console.log(file);
+      if (!file.originalname.match(/\.(jpg|jpeg|png|gif)$/)) {
+        return callback(
+          new BadRequestException('Only image files are allowed!'),
+          null,
+        );
+      }
       const name = file.originalname.split('.')[0];
       const fileExtName = extname(file.originalname);
       callback(null, `${name}-${Date.now()}${fileExtName}`);
     },
   }),
+  limits: {
+    fileSize: 5 * 1024 * 1024,
+    files: 1,
+  },
 });
 
 @Controller('profile')
@@ -73,10 +85,15 @@ export class ProfileController {
 
   @Get('settings')
   @UseGuards(JwtAccessTokenGuard)
+  @ApiResponse({
+    status: 200,
+    description: 'User settings',
+    type: ProfileUpdateDto,
+  })
   async getProfileSettings(@Req() req: Request & { user: userPayload }) {
     const settings = await this.profileService.getProfileSettings(req.user.id);
     if (!settings) {
-      throw new BadGatewayException(
+      throw new BadRequestException(
         "User doesn't exist ?! WTF you tryna do ?!",
       );
     }
@@ -100,6 +117,15 @@ export class ProfileController {
     );
   }
 
+  @Post('update/login')
+  @UseGuards(JwtAccessTokenGuard)
+  async updateProfileLogin(
+    @Req() req: Request & { user: userPayload },
+    @Body() loginDto: LoginDto,
+  ) {
+    return this.profileService.updateProfileLogin(req.user.id, loginDto.login);
+  }
+
   @Post('update/avatar')
   @UseGuards(JwtAccessTokenGuard)
   @UseInterceptors(avatarInterceptor)
@@ -108,13 +134,12 @@ export class ProfileController {
     @UploadedFile() file,
   ) {
     if (file) {
-      console.log('reach here');
       return this.profileService.updateProfileAvatar(
         req.user.id,
         `/images/${file.filename}`,
       );
     }
-    throw new BadGatewayException('No file provided');
+    throw new BadRequestException('No file provided');
   }
 
   @Get('all')

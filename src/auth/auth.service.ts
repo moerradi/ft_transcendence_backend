@@ -5,7 +5,6 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { User } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { IntraUser } from 'src/types';
 import * as speakeasy from 'speakeasy';
@@ -94,7 +93,7 @@ export class AuthService {
     const { base32, otpauth } = this.generate2FASecret();
     // add recovery codes generation later
     this.tempSecrets.set(userId, base32);
-    return otpauth;
+    return { qrcode: otpauth };
   }
 
   async confirm2FA(userId: number, code: string) {
@@ -119,15 +118,20 @@ export class AuthService {
   }
 
   async disable2FA(userId: number) {
-    await this.prisma.user.update({
-      where: {
-        id: userId,
-      },
-      data: {
-        two_factor_auth_enabled: false,
-        two_factor_auth_secret: null,
-      },
-    });
+    try {
+      await this.prisma.user.update({
+        where: {
+          id: userId,
+        },
+        data: {
+          two_factor_auth_enabled: false,
+          two_factor_auth_secret: null,
+        },
+      });
+      return { success: true, message: '2FA disabled successfully' };
+    } catch (e) {
+      throw new BadRequestException("Couldn't disable 2FA");
+    }
   }
 
   async verify2FA(userId: number, code: string) {

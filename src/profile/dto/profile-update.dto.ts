@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsOptional, IsString } from 'class-validator';
 
 export class ProfileUpdateDto {
   @ApiProperty({ required: false })
@@ -21,4 +21,9 @@ export class ProfileUpdateDto {
   @IsString()
   @IsOptional()
   avatar_url?: string;
+
+  @ApiProperty({ required: false })
+  @IsBoolean()
+  @IsOptional()
+  two_factor_auth_enabled: boolean;
 }

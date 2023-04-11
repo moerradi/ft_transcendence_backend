@@ -29,6 +29,21 @@ async function generateDummyUsers(count) {
       `Created user ${user.id}: ${user.first_name} ${user.last_name}`,
     );
   }
+  // generate random friendships
+  const users = await prisma.user.findMany();
+  for (let i = 0; i < users.length; i++) {
+    const randomUser = faker.random.arrayElement(users);
+    // make sure we don't create a friendship with the same user
+    if (randomUser.id !== users[i].id) {
+      await prisma.friendship.create({
+        data: {
+          addressee_id: users[i].id,
+          requester_id: randomUser.id,
+          status: 'ACCEPTED',
+        },
+      });
+    }
+  }
 }
 
 generateDummyUsers(10)
