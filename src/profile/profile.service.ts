@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Friendship, User } from '@prisma/client';
+import { User } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
@@ -71,7 +71,6 @@ export class ProfileService {
             game_mode: true,
             player_one_score: true,
             player_two_score: true,
-            status: true,
             started_at: true,
             finished_at: true,
           },
@@ -88,7 +87,6 @@ export class ProfileService {
             game_mode: true,
             player_one_score: true,
             player_two_score: true,
-            status: true,
             started_at: true,
             finished_at: true,
           },
