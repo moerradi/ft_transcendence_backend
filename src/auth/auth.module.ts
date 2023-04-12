@@ -7,10 +7,12 @@ import { PassportModule } from '@nestjs/passport';
 import { HttpModule } from '@nestjs/axios';
 import { JwtModule } from '@nestjs/jwt';
 import { jwtAccessTokenStrategy } from './strategies/jwtaccess.strategy';
+import { WsGuard } from './guards/socket.guard';
+import { ConfigModule } from '@nestjs/config';
 
 @Module({
   controllers: [AuthController],
-  providers: [AuthService, IntraStrategy, jwtAccessTokenStrategy],
+  providers: [AuthService, IntraStrategy, jwtAccessTokenStrategy, WsGuard],
   imports: [
     PrismaModule,
     PassportModule,
@@ -23,6 +25,7 @@ import { jwtAccessTokenStrategy } from './strategies/jwtaccess.strategy';
     JwtModule.registerAsync({
       useFactory: () => ({}),
     }),
+	ConfigModule
   ],
 })
 export class AuthModule {}
