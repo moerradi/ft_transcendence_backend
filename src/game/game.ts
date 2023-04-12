@@ -29,11 +29,13 @@ export class game {
       id: player1,
       score: 0,
       positionY: this.TABLE_HEIGHT / 2 - this.PADDLE_HEIGHT / 2,
+      playerPaddleHeight: this.PADDLE_HEIGHT,
     };
     this._player2 = {
       id: player2,
       score: 0,
       positionY: this.TABLE_HEIGHT / 2 - this.PADDLE_HEIGHT / 2,
+      playerPaddleHeight: this.PADDLE_HEIGHT,
     };
     this._table = {
       width: this.TABLE_WIDTH,
@@ -121,9 +123,19 @@ export class game {
 
   private updateScore() {
     if (this._ball.cx < this._table.leftLimit) {
+      if (this._gameMode === 'Fierce') {
+        this._player1.playerPaddleHeight -= 10;
+      } else if (this._gameMode === 'Fast') {
+        this._speed += 1;
+      }
       this._player2.score++;
       this.initGoal();
     } else if (this._ball.cx > this._table.rightLimit) {
+      if (this._gameMode === 'Fierce') {
+        this._player2.playerPaddleHeight -= 10;
+      } else if (this._gameMode === 'Fast') {
+        this._speed += 1;
+      }
       this._player1.score++;
       this.initGoal();
     }
@@ -164,8 +176,10 @@ export class game {
       ballY: nextCY / this._table.height,
       player1Y: this._player1.positionY / this._table.height,
       player2Y: this._player2.positionY / this._table.height,
-      player1H: this.PADDLE_HEIGHT / this._table.height,
-      player2H: this.PADDLE_HEIGHT / this._table.height,
+      player1H: this._player1.playerPaddleHeight / this._table.height,
+      player2H: this._player2.playerPaddleHeight / this._table.height,
+      player1Score: this._player1.score,
+      player2Score: this._player2.score,
     };
 
     this._ball.cx = nextCX;
