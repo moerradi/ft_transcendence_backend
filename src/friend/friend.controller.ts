@@ -1,17 +1,8 @@
-import {
-  BadRequestException,
-  Controller,
-  Get,
-  Param,
-  Post,
-  Req,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, Param, Post, Req, UseGuards } from '@nestjs/common';
 import { FriendService } from './friend.service';
 import { JwtAccessTokenGuard } from 'src/auth/guards/jwtaccess.guard';
 import { userPayload } from 'src/auth/types/userPayload';
 import { Request } from 'express';
-import { isNumberString } from 'class-validator';
 
 @Controller('friend')
 export class FriendController {
