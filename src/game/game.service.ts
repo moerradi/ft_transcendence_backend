@@ -73,7 +73,9 @@ export class GameService {
     }
     return null;
   }
-
+  isPlayerInQueue(playerId: string): boolean {
+    return this.queue.some((player) => player.id === playerId);
+  }
   removePlayersFromQueue(playersToRemove: waitingPlayer[]): void {
     this.queue = this.queue.filter(
       (player) =>

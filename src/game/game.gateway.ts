@@ -15,6 +15,9 @@ import { waitingPlayer } from './interfaces';
 import * as jwt from 'jsonwebtoken';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { GameMode } from '@prisma/client';
+import { userPayload } from '../auth/types/userPayload';
+
+type status = 'Online' | 'InGame';
 
 @WebSocketGateway({ cors: true })
 export class GameGateway
@@ -29,32 +32,46 @@ export class GameGateway
     console.log('GameGateway constructor');
   }
 
-  public games: game[] = [];
+  public games: game[] = []
+  public playersStatus: {playerId: number, status: status}[] = [];
   public sockets = new Map<string, number>();
   public waitingPlayers: waitingPlayer[] = [];
   public debug_stop = true;
   public spectators: { [gameId: string]: Socket[] } = {};
-  handleConnection(client: Socket, ...args: any[]) {
+  handleConnection(
+    client: Socket & { userData: { id: string; login: string } },
+    ...args: any[]
+  ) {
     try {
-      const { id } = jwt.verify(
+      const { login, id, twofa } = jwt.verify(
         client.handshake.auth.token,
         this.configService.get('JWT_ACCESS_TOKEN_SECRET'),
-      ) as { id: string };
-      this.sockets.set(client.id, parseInt(id));
+      ) as userPayload;
+      if (twofa) {
+        client.disconnect();
+        return;
+      }
+      //   console.log('payload', payload);
+      client.userData = { login, id: id.toString() };
+      //   this.sockets.set(client.userData.id, parseInt(id));
     } catch (ex) {
       console.error(ex);
       client.disconnect();
+	  return ;
     }
-    console.log(`Client connected: ${client.id}`);
+    console.log(`Client connected: ${client.userData.id}`);
   }
 
-  handleConnectionError(client: Socket, ...args: any[]) {
-    console.log(`Client connection error: ${client.id}`);
+  handleConnectionError(
+    client: Socket & { userData: { id: string } },
+    ...args: any[]
+  ) {
+    console.log(`Client connection error: ${client.userData.id}`);
   }
 
-  handleDisconnect(client: Socket) {
-    this.sockets.delete(client.id);
-    console.log(`Client disconnected: ${client.id}`);
+  handleDisconnect(client: Socket & { userData: { id: string } }) {
+    this.sockets.delete(client.userData.id);
+    console.log(`Client disconnected: ${client.userData.id}`);
   }
 
   afterInit(server: Server) {
@@ -81,18 +98,21 @@ export class GameGateway
 
   @SubscribeMessage('paddleMove')
   handlePaddleMove(
-    client: Socket,
+    client: Socket & { userData: { id: string; login: string } },
     payload: { player: string; position: number },
   ): void {
-    const gameId = this.getGameIdByPlayerId(client.id);
+    const gameId = this.getGameIdByPlayerId(client.userData.id);
     if (gameId) {
       this.server.to(gameId).emit('paddleMove', payload);
     }
   }
 
   @SubscribeMessage('ballMove')
-  handleBallMove(client: Socket, payload: { x: number; y: number }): void {
-    const gameId = this.getGameIdByPlayerId(client.id);
+  handleBallMove(
+    client: Socket & { userData: { id: string; login: string } },
+    payload: { x: number; y: number },
+  ): void {
+    const gameId = this.getGameIdByPlayerId(client.userData.id);
     if (gameId) {
       this.server.to(gameId).emit('ballMove', payload);
     }
@@ -107,18 +127,25 @@ export class GameGateway
   }
 
   @SubscribeMessage('movePlayer')
-  handleMovePlayer(client: Socket, payload: { playerY: number }): void {
+  handleMovePlayer(
+    client: Socket & { userData: { id: string; login: string } },
+    payload: { playerY: number },
+  ): void {
     console.log('movePlayer from gateway');
-    this.games[0].movePlayer(payload.playerY, client.id);
+    this.games[0].movePlayer(payload.playerY, client.userData.id);
   }
 
   @SubscribeMessage('join_queue')
   handleJoinQueue(
-    client: Socket,
+    client: Socket & { userData: { id: string; login: string } },
     payload: { player: string; gameMode: string },
   ): void {
-    this.gameService.joinQueue(client.id, client, payload.gameMode);
-
+    // check if the player is already in the queue
+    if (this.gameService.isPlayerInQueue(client.userData.id)) {
+      return;
+    }
+    this.gameService.joinQueue(client.userData.id, client, payload.gameMode);
+    console.log('client id: ' + client.userData.id);
     const matchedPlayers = this.gameService.matchPlayersByGameMode(
       payload.gameMode,
     );
@@ -140,8 +167,11 @@ export class GameGateway
   }
 
   @SubscribeMessage('leave_queue')
-  handleLeaveQueue(client: Socket, payload: { player: string }): void {
-    this.gameService.leaveQueue(client.id);
+  handleLeaveQueue(
+    client: Socket & { userData: { id: string; login: string } },
+    payload: { player: string },
+  ): void {
+    this.gameService.leaveQueue(client.userData.id);
   }
 
   async handleGameOver(gameId: string) {
@@ -151,8 +181,8 @@ export class GameGateway
     console.log(game._gameMode);
     await this.prisma.match.create({
       data: {
-        player_one_id: this.sockets.get(game._player1.id),
-        player_two_id: this.sockets.get(game._player2.id),
+        player_one_id: parseInt(game._player1.id),
+        player_two_id: parseInt(game._player2.id),
         player_one_score: game._player1.score,
         player_two_score: game._player2.score,
         finished_at: new Date(),
