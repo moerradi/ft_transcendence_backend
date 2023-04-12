@@ -1,10 +1,11 @@
+import { GameMode } from '@prisma/client';
 import { Socket } from 'socket.io';
 import { GameGateway } from './game.gateway';
 import { Ball, Player, Table } from './interfaces';
 
 export class game {
   public _id: string;
-  public _gameMode: string;
+  public _gameMode: GameMode;
   private _gameStatus: 'pending' | 'waiting' | 'playing' | 'break' | 'gameover';
   public _player1: Player;
   public _player2: Player;
@@ -157,6 +158,7 @@ export class game {
     }
 
     const gameState = {
+      gameMode: this._gameMode,
       gameStatus: this._gameStatus,
       ballX: nextCX / this._table.width,
       ballY: nextCY / this._table.height,
@@ -174,8 +176,7 @@ export class game {
 
   gameOver() {
     this._gameStatus = 'gameover';
-    this._gateway.handleGameOver(this._player1.id);
-    this._gateway.handleGameOver(this._player2.id);
+    this._gateway.handleGameOver(this._id);
   }
 
   public gameLoop() {
