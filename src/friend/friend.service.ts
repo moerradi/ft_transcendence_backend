@@ -137,11 +137,20 @@ export class FriendService {
     return { success: true };
   }
 
-  async acceptFriendRequest(addressee_id: number, requester_id: number) {
+  async acceptFriendRequest(addressee_id: number, login: string) {
+    // get friend id
+    const requester = await this.prisma.user.findUnique({
+      where: {
+        login,
+      },
+    });
+    if (!requester) {
+      throw new BadRequestException(`User with id "${login}" not found`);
+    }
     const friendship = await this.prisma.friendship.findUnique({
       where: {
         friendship_id: {
-          requester_id,
+          requester_id: requester.id,
           addressee_id,
         },
       },
@@ -155,7 +164,7 @@ export class FriendService {
       await this.prisma.friendship.update({
         where: {
           friendship_id: {
-            requester_id,
+            requester_id: requester.id,
             addressee_id,
           },
         },
@@ -170,11 +179,20 @@ export class FriendService {
     return { success: true };
   }
 
-  async deleteFriendRequest(addressee_id: number, requester_id: number) {
+  async deleteFriendRequest(addressee_id: number, login: string) {
+    const requester = await this.prisma.user.findUnique({
+      where: {
+        login,
+      },
+    });
+    if (!requester) {
+      throw new BadRequestException(`User with login "${login}" not found`);
+    }
+
     const friendship = await this.prisma.friendship.findUnique({
       where: {
         friendship_id: {
-          requester_id,
+          requester_id: requester.id,
           addressee_id,
         },
       },
@@ -186,7 +204,7 @@ export class FriendService {
       await this.prisma.friendship.delete({
         where: {
           friendship_id: {
-            requester_id,
+            requester_id: requester.id,
             addressee_id,
           },
         },
@@ -198,17 +216,25 @@ export class FriendService {
     return { success: true };
   }
 
-  async unfriend(addressee_id: number, requester_id: number) {
+  async unfriend(addressee_id: number, login: string) {
+    const requester = await this.prisma.user.findUnique({
+      where: {
+        login,
+      },
+    });
+    if (!requester) {
+      throw new BadRequestException(`User with login "${login}" not found`);
+    }
     const friendship = await this.prisma.friendship.findFirst({
       where: {
         OR: [
           {
-            requester_id: requester_id,
+            requester_id: requester.id,
             addressee_id: addressee_id,
           },
           {
             requester_id: addressee_id,
-            addressee_id: requester_id,
+            addressee_id: requester.id,
           },
         ],
       },
@@ -220,7 +246,7 @@ export class FriendService {
       await this.prisma.friendship.delete({
         where: {
           friendship_id: {
-            requester_id,
+            requester_id: requester.id,
             addressee_id,
           },
         },
@@ -232,16 +258,24 @@ export class FriendService {
     return { suceess: true };
   }
 
-  async blockFriend(addressee_id: number, requester_id: number) {
+  async blockFriend(requester_id: number, login: string) {
+    const toblock = await this.prisma.user.findUnique({
+      where: {
+        login: login,
+      },
+    });
+    if (!toblock) {
+      throw new BadRequestException(`User with login "${login}" not found`);
+    }
     const friendship = await this.prisma.friendship.findFirst({
       where: {
         OR: [
           {
             requester_id: requester_id,
-            addressee_id: addressee_id,
+            addressee_id: toblock.id,
           },
           {
-            requester_id: addressee_id,
+            requester_id: toblock.id,
             addressee_id: requester_id,
           },
         ],
@@ -256,12 +290,63 @@ export class FriendService {
       await this.prisma.friendship.update({
         where: {
           friendship_id: {
-            requester_id,
-            addressee_id,
+            requester_id: friendship.requester_id,
+            addressee_id: friendship.addressee_id,
           },
         },
         data: {
+          requester_id: requester_id,
+          addressee_id: toblock.id,
           status: 'BLOCKED',
+        },
+      });
+    } catch (e) {
+      console.log(e);
+      throw new BadRequestException(`Something went wrong`);
+    }
+    return { suceess: true };
+  }
+
+  async unblockFriend(requester_id: number, login: string) {
+    const toblock = await this.prisma.user.findUnique({
+      where: {
+        login: login,
+      },
+    });
+    if (!toblock) {
+      throw new BadRequestException(`User with login "${login}" not found`);
+    }
+    const friendship = await this.prisma.friendship.findFirst({
+      where: {
+        OR: [
+          {
+            requester_id: requester_id,
+            addressee_id: toblock.id,
+          },
+          {
+            requester_id: toblock.id,
+            addressee_id: requester_id,
+          },
+        ],
+      },
+    });
+    if (!friendship) {
+      throw new BadRequestException(`Friendship not found`);
+    } else if (friendship.status !== 'BLOCKED') {
+      throw new BadRequestException(`Friendship not blocked`);
+    }
+    try {
+      await this.prisma.friendship.update({
+        where: {
+          friendship_id: {
+            requester_id: friendship.requester_id,
+            addressee_id: friendship.addressee_id,
+          },
+        },
+        data: {
+          requester_id: requester_id,
+          addressee_id: toblock.id,
+          status: 'ACCEPTED',
         },
       });
     } catch (e) {

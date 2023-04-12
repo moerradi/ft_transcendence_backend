@@ -44,60 +44,48 @@ export class FriendController {
     return await this.friendService.sendFriendRequest(req.user.login, login);
   }
 
-  @Post('accept/:requesterId')
+  @Post('accept/:login')
   @UseGuards(JwtAccessTokenGuard)
   async acceptFriendRequest(
     @Req() req: Request & { user: userPayload },
-    @Param('requesterId') requesterId: string,
+    @Param('login') login: string,
   ) {
-    if (!isNumberString(requesterId)) {
-      throw new BadRequestException('Invalid requesterId');
-    }
-    return await this.friendService.acceptFriendRequest(
-      req.user.id,
-      parseInt(requesterId),
-    );
+    return await this.friendService.acceptFriendRequest(req.user.id, login);
   }
 
-  @Post('decline/:requesterId')
+  @Post('decline/:login')
   @UseGuards(JwtAccessTokenGuard)
   async declineFriendRequest(
     @Req() req: Request & { user: userPayload },
-    @Param('requesterId') requesterId: string,
+    @Param('login') login: string,
   ) {
-    if (!isNumberString(requesterId)) {
-      throw new BadRequestException('Invalid requesterId');
-    }
-    return await this.friendService.deleteFriendRequest(
-      req.user.id,
-      parseInt(requesterId),
-    );
+    return await this.friendService.deleteFriendRequest(req.user.id, login);
   }
 
-  @Post('unfirend/:friendId')
+  @Post('unfirend/:login')
   @UseGuards(JwtAccessTokenGuard)
   async unfriend(
     @Req() req: Request & { user: userPayload },
-    @Param('friendId') friendId: string,
+    @Param('login') login: string,
   ) {
-    if (!isNumberString(friendId)) {
-      throw new BadRequestException('Invalid friendId');
-    }
-    return await this.friendService.unfriend(req.user.id, parseInt(friendId));
+    return await this.friendService.unfriend(req.user.id, login);
   }
 
-  @Post('block/:friendId')
+  @Post('block/:login')
   @UseGuards(JwtAccessTokenGuard)
   async block(
     @Req() req: Request & { user: userPayload },
-    @Param('friendId') friendId: string,
+    @Param('login') login: string,
   ) {
-    if (!isNumberString(friendId)) {
-      throw new BadRequestException('Invalid friendId');
-    }
-    return await this.friendService.blockFriend(
-      req.user.id,
-      parseInt(friendId),
-    );
+    return await this.friendService.blockFriend(req.user.id, login);
+  }
+
+  @Post('unblock/:login')
+  @UseGuards(JwtAccessTokenGuard)
+  async unblock(
+    @Req() req: Request & { user: userPayload },
+    @Param('login') login: string,
+  ) {
+    return await this.friendService.unblockFriend(req.user.id, login);
   }
 }

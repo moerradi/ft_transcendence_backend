@@ -1,6 +1,10 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { User } from '@prisma/client';
+import { Friendship, User } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
@@ -53,7 +57,47 @@ export class ProfileService {
   }
 
   // add method to get profile by username (only public data)
-  async getProfile(login: string) {
+  async getProfile(requester: string, login: string) {
+    let friendshipStatus = 'NOT_FRIENDS';
+    if (requester === login) {
+      friendshipStatus = 'SELF';
+    } else {
+      const f = await this.prisma.friendship.findFirst({
+        where: {
+          OR: [
+            {
+              requester: {
+                login: requester,
+              },
+              addressee: {
+                login: login,
+              },
+            },
+            {
+              requester: {
+                login: login,
+              },
+              addressee: {
+                login: requester,
+              },
+            },
+          ],
+        },
+        include: {
+          requester: {
+            select: {
+              login: true,
+            },
+          },
+        },
+      });
+      if (f) {
+        friendshipStatus = f.status;
+        if (friendshipStatus === 'BLOCKED' && f.requester.login === login) {
+          throw new NotFoundException(`User with login "${login}" is blocked`);
+        }
+      }
+    }
     const user = await this.prisma.user.findUnique({
       where: { login },
       select: {
@@ -66,8 +110,18 @@ export class ProfileService {
         matches_as_player_one: {
           select: {
             id: true,
-            player_one_id: true,
-            player_two_id: true,
+            player_one: {
+              select: {
+                login: true,
+                id: true,
+              },
+            },
+            player_two: {
+              select: {
+                login: true,
+                id: true,
+              },
+            },
             game_mode: true,
             player_one_score: true,
             player_two_score: true,
@@ -82,8 +136,18 @@ export class ProfileService {
         matches_as_player_two: {
           select: {
             id: true,
-            player_one_id: true,
-            player_two_id: true,
+            player_one: {
+              select: {
+                login: true,
+                id: true,
+              },
+            },
+            player_two: {
+              select: {
+                login: true,
+                id: true,
+              },
+            },
             game_mode: true,
             player_one_score: true,
             player_two_score: true,
@@ -101,8 +165,20 @@ export class ProfileService {
     const matchHistory = [
       ...user.matches_as_player_one,
       ...user.matches_as_player_two,
-    ].sort((a, b) => (a.started_at > b.started_at ? -1 : 1));
-
+    ].map((match) => {
+      return {
+        id: match.id,
+        player_one: match.player_one.login,
+        player_one_id: match.player_one.id,
+        player_two: match.player_two.login,
+        player_two_id: match.player_two.id,
+        game_mode: match.game_mode,
+        player_one_score: match.player_one_score,
+        player_two_score: match.player_two_score,
+        started_at: match.started_at,
+        finished_at: match.finished_at,
+      };
+    });
     const last10Matches = matchHistory.slice(0, 10);
     const friends = await this.getFriends(login);
     return {
@@ -114,6 +190,7 @@ export class ProfileService {
       level: user.level,
       matchHistory: last10Matches,
       friends: friends,
+      friendship: friendshipStatus,
     };
   }
 
