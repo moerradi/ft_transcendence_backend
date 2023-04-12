@@ -4,6 +4,7 @@ import { ConfigModule } from '@nestjs/config';
 import { PrismaModule } from './prisma/prisma.module';
 import { ProfileModule } from './profile/profile.module';
 import { GameModule } from './game/game.module';
+import { FriendModule } from './friend/friend.module';
 
 @Module({
   imports: [
@@ -12,6 +13,7 @@ import { GameModule } from './game/game.module';
     PrismaModule,
     ProfileModule,
     GameModule,
+    FriendModule,
   ],
   controllers: [],
   providers: [],

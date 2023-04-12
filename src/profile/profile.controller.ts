@@ -1,5 +1,4 @@
 import {
-  BadGatewayException,
   BadRequestException,
   Body,
   Controller,
@@ -51,8 +50,11 @@ export class ProfileController {
 
   @Get(':login/info')
   @UseGuards(JwtAccessTokenGuard)
-  async getProfile(@Param('login') login: string) {
-    const profile = await this.profileService.getProfile(login);
+  async getProfile(
+    @Req() req: Request & { user: userPayload },
+    @Param('login') login: string,
+  ) {
+    const profile = await this.profileService.getProfile(req.user.login, login);
     if (!profile) {
       throw new NotFoundException('Profile not found');
     }
