@@ -246,8 +246,8 @@ export class FriendService {
       await this.prisma.friendship.delete({
         where: {
           friendship_id: {
-            requester_id: requester.id,
-            addressee_id,
+            requester_id: friendship.requester_id,
+            addressee_id: friendship.addressee_id,
           },
         },
       });
