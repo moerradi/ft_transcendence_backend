@@ -53,7 +53,7 @@ export class FriendController {
     return await this.friendService.deleteFriendRequest(req.user.id, login);
   }
 
-  @Post('unfirend/:login')
+  @Post('unfriend/:login')
   @UseGuards(JwtAccessTokenGuard)
   async unfriend(
     @Req() req: Request & { user: userPayload },

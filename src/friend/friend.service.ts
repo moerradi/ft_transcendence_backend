@@ -145,7 +145,7 @@ export class FriendService {
       },
     });
     if (!requester) {
-      throw new BadRequestException(`User with id "${login}" not found`);
+      throw new BadRequestException(`User with login "${login}" not found`);
     }
     const friendship = await this.prisma.friendship.findUnique({
       where: {

@@ -84,6 +84,8 @@ model Match {
   game_mode        GameMode
   player_one_score Int
   player_two_score Int
+  player_one_exp   Int
+  player_two_exp   Int
   status           MatchStatus
   started_at       DateTime
   finished_at      DateTime

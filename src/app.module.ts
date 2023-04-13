@@ -5,6 +5,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { ProfileModule } from './profile/profile.module';
 import { GameModule } from './game/game.module';
 import { FriendModule } from './friend/friend.module';
+import { HomeModule } from './home/home.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { FriendModule } from './friend/friend.module';
     ProfileModule,
     GameModule,
     FriendModule,
+    HomeModule,
   ],
   controllers: [],
   providers: [],

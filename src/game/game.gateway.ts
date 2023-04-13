@@ -32,8 +32,8 @@ export class GameGateway
     console.log('GameGateway constructor');
   }
 
-  public games: game[] = []
-  public playersStatus: {playerId: number, status: status}[] = [];
+  public games: game[] = [];
+  public playersStatus: { playerId: number; status: status }[] = [];
   public sockets = new Map<string, number>();
   public waitingPlayers: waitingPlayer[] = [];
   public debug_stop = true;
@@ -57,7 +57,7 @@ export class GameGateway
     } catch (ex) {
       console.error(ex);
       client.disconnect();
-	  return ;
+      return;
     }
     console.log(`Client connected: ${client.userData.id}`);
   }
@@ -178,13 +178,43 @@ export class GameGateway
     console.log('gameOver from gateway');
     const game: game = this.games[this.getGameIndexByGameId(gameId)];
     this.games = this.games.filter((game) => game._id.toString() !== gameId);
-    console.log(game._gameMode);
+    // console.log(game._gameMode);
+    // calculate exp based on who winned also update level based on factor required exp to level up grows by 10% every level
+    const winner =
+      game._player1.score > game._player2.score ? game._player1 : game._player2;
+    const loser =
+      game._player1.score > game._player2.score ? game._player2 : game._player1;
+    const winnerExp = 100 + loser.score * 10;
+    const loserExp = 50 + winner.score * 10;
+    const { level: winnerLevel } = await this.prisma.user.findUnique({
+      where: {
+        id: parseInt(winner.id),
+      },
+      select: {
+        level: true,
+      },
+    });
+    const { level: loserLevel } = await this.prisma.user.findUnique({
+      where: {
+        id: parseInt(loser.id),
+      },
+      select: {
+        level: true,
+      },
+    });
+    // await this.prisma.$transaction([
+    //     this.prisma.user.update({
+    //         where: {
+    //             id: parseInt(winner.id),
+
     await this.prisma.match.create({
       data: {
         player_one_id: parseInt(game._player1.id),
         player_two_id: parseInt(game._player2.id),
         player_one_score: game._player1.score,
         player_two_score: game._player2.score,
+        player_one_exp: winnerExp,
+        player_two_exp: loserExp,
         finished_at: new Date(),
         game_mode: game._gameMode,
         started_at: new Date(),
