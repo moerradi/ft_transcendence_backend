@@ -102,6 +102,15 @@ export class GameGateway
     return null;
   }
 
+  // create a function that return the game that the player is in
+  getGameByPlayerId(playerId: string): game | null {
+    for (const game of this.games) {
+      if (game._player1.id === playerId || game._player2.id === playerId) {
+        return game;
+      }
+    }
+  }
+
   getGameIndexByGameId(gameId: string): string | null {
     for (const idx in this.games) {
       if (this.games[idx]._id === gameId) {
@@ -116,7 +125,7 @@ export class GameGateway
     client: Socket & { userData: { id: string; login: string } },
     payload: { player: string; position: number },
   ): void {
-    if (client.userData.id !== "1") console.log('paddleMove', payload);
+    if (client.userData.id !== '1') console.log('paddleMove', payload);
     const gameId = this.getGameIdByPlayerId(client.userData.id);
     if (gameId) {
       this.server.to(gameId).emit('paddleMove', payload);
@@ -134,18 +143,13 @@ export class GameGateway
     }
   }
 
-  @SubscribeMessage('startGame')
-  handleStartGame(client: Socket, payload: { gameId: string }): void {
-    //print the game id
-    // this.games[0].startGame();
-  }
-
   @SubscribeMessage('movePlayer')
   handleMovePlayer(
     client: Socket & { userData: { id: string; login: string } },
     payload: { playerY: number },
   ): void {
-    this.games[0].movePlayer(payload.playerY, client.userData.id);
+	const game = this.getGameByPlayerId(client.userData.id);
+    game.movePlayer(payload.playerY, client.userData.id);
   }
 
   @SubscribeMessage('join_queue')
@@ -171,7 +175,7 @@ export class GameGateway
       player2.client.join(new_game._id.toString());
 
       this.games.push(new_game);
-      this.games[0].startGame();
+      new_game.startGame();
       this.gameService.removePlayersFromQueue([player1, player2]);
 
       player1.client.emit('gameReady');
