@@ -246,8 +246,8 @@ export class FriendService {
       await this.prisma.friendship.delete({
         where: {
           friendship_id: {
-            requester_id: requester.id,
-            addressee_id,
+            requester_id: friendship.requester_id,
+            addressee_id: friendship.addressee_id,
           },
         },
       });
@@ -281,25 +281,33 @@ export class FriendService {
         ],
       },
     });
-    if (!friendship) {
-      throw new BadRequestException(`Friendship not found`);
-    } else if (friendship.status === 'BLOCKED') {
+    if (friendship && friendship.status === 'BLOCKED') {
       throw new BadRequestException(`Friendship already blocked`);
     }
     try {
-      await this.prisma.friendship.update({
-        where: {
-          friendship_id: {
-            requester_id: friendship.requester_id,
-            addressee_id: friendship.addressee_id,
+      if (friendship) {
+        await this.prisma.friendship.update({
+          where: {
+            friendship_id: {
+              requester_id: friendship.requester_id,
+              addressee_id: friendship.addressee_id,
+            },
           },
-        },
-        data: {
-          requester_id: requester_id,
-          addressee_id: toblock.id,
-          status: 'BLOCKED',
-        },
-      });
+          data: {
+            requester_id: requester_id,
+            addressee_id: toblock.id,
+            status: 'BLOCKED',
+          },
+        });
+      } else {
+        await this.prisma.friendship.create({
+          data: {
+            requester_id: requester_id,
+            addressee_id: toblock.id,
+            status: 'BLOCKED',
+          },
+        });
+      }
     } catch (e) {
       console.log(e);
       throw new BadRequestException(`Something went wrong`);
