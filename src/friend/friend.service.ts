@@ -281,7 +281,7 @@ export class FriendService {
         ],
       },
     });
-    if (friendship.status === 'BLOCKED') {
+    if (friendship && friendship.status === 'BLOCKED') {
       throw new BadRequestException(`Friendship already blocked`);
     }
     try {
