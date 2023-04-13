@@ -68,15 +68,12 @@ export class game {
         position < this._table.height - this.PADDLE_HEIGHT / 2 &&
         position > this.PADDLE_HEIGHT / 2
       ) {
-        console.log('player moved');
         this._player1.positionY = position;
       } else if (
         player === this._player2.id &&
         position < this._table.height - this.PADDLE_HEIGHT / 2 &&
         position > this.PADDLE_HEIGHT / 2
       ) {
-        console.log('player moved');
-
         this._player2.positionY = position;
       }
     }

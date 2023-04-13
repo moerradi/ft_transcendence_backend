@@ -101,6 +101,7 @@ export class ProfileService {
     const user = await this.prisma.user.findUnique({
       where: { login },
       select: {
+		id: true,
         login: true,
         first_name: true,
         last_name: true,
@@ -182,6 +183,7 @@ export class ProfileService {
     const last10Matches = matchHistory.slice(0, 10);
     const friends = await this.getFriends(login);
     return {
+	  id: user.id,
       login: user.login,
       first_name: user.first_name,
       last_name: user.last_name,
