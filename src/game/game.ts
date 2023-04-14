@@ -139,7 +139,7 @@ export class game {
       this._player1.score++;
       this.initGoal();
     }
-    // if (this._player1.score === 5 || this._player2.score === 5) this.gameOver();
+    if (this._player1.score === 11 || this._player2.score === 11) this.gameOver(false);
   }
 
   getGameState() {
