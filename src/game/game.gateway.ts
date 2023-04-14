@@ -50,6 +50,8 @@ export class GameGateway
 
   handleConnection(client: Socket & { userData: UserData }, ...args: any[]) {
     try {
+      console.log('handleConnection');
+      console.log(client.handshake.auth.token);
       const token = client.handshake.auth.token;
       if (!client.handshake.auth.token) {
         client.disconnect();
@@ -59,14 +61,14 @@ export class GameGateway
         token,
         this.configService.get('JWT_ACCESS_TOKEN_SECRET'),
       ) as userPayload;
+      console.log('decoded', decoded);
       client.userData = {
         id: decoded.id,
         login: decoded.login,
       };
       const existingUser = this.connectedUsers.get(client.userData.id);
       if (existingUser) {
-        client.disconnect();
-        return;
+        this.connectedUsers.set(client.userData.id, client.id);
       }
       this.connectedUsers.set(client.userData.id, client.id);
     } catch (err) {
@@ -126,6 +128,7 @@ export class GameGateway
     client: Socket & { userData: UserData },
     payload: { gameMode: string },
   ): void {
+    console.log('join_queue', payload.gameMode, client.userData.id);
     const queue = this.waitingPlayers.get(payload.gameMode);
     if (!queue) {
       this.waitingPlayers.set(payload.gameMode, [client.userData.id]);
