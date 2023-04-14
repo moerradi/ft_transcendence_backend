@@ -24,20 +24,21 @@ export class PrismaService extends PrismaClient implements OnModuleInit {
       // when updating a user, we want to update the level based on the new exp
       if (params.model === 'User' && params.action === 'update') {
         const { exp } = params.args.data;
-		console.log('exp', exp);
+        console.log('exp', exp);
         if (exp) {
-			if (exp.increment) {
-				// get old exp
-				const oldExp = await this.user.findUnique({
-					where: { id: params.args.where.id },
-					select: { exp: true },
-				});
-				params.args.data.level = calculateNewLevel(exp.increment + oldExp.exp);
-			}
-			else {
-				console.log('set', exp.set);
-				params.args.data.level = calculateNewLevel(exp.set);
-			}
+          if (exp.increment) {
+            // get old exp
+            const oldExp = await this.user.findUnique({
+              where: { id: params.args.where.id },
+              select: { exp: true },
+            });
+            params.args.data.level = calculateNewLevel(
+              exp.increment + oldExp.exp,
+            );
+          } else {
+            console.log('set', exp.set);
+            params.args.data.level = calculateNewLevel(exp.set);
+          }
         }
       }
       return next(params);

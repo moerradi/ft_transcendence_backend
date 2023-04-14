@@ -189,35 +189,21 @@ export class GameGateway
       this.server.to(socketId2).emit('gameOver', { gameId });
       this.server.sockets.sockets.get(socketId2).leave(gameId);
     }
-    // unjoin the players from the game room
     try {
-      // calculate winner
       const gameState = game.getGameState();
-      console.log(gameState);
-      console.log(game._gameMode);
-      console.log(game._player1.id);
-      console.log(game._player2.id);
-      // calculate winner xp based on goal difference
+
       const winnerXp =
         Math.abs(gameState.player1Score - gameState.player2Score) * 10 + 100;
       const loserXp = 100;
-      // await this.prisma.match.create({
-      // 	data: {
-      // 		player_one_id: parseInt(game._player1.id),
-      // 		player_two_id: parseInt(game._player2.id),
-      // 		player_one_score: gameState.player1Score,
-      // 		player_two_score: gameState.player2Score,
-      // 		player_one_exp: gameState.player1Score > gameState.player2Score ? winnerXp : loserXp,
-      // 		player_two_exp: gameState.player1Score < gameState.player2Score ? winnerXp : loserXp,
-      // 		game_mode: game._gameMode,
-      // 	},
-      // });
-      // transsaction
-	  let Player1Won = gameState.player1Score > gameState.player2Score;
-	  let player_one_exp = Player1Won ? winnerXp : loserXp;
-	  let player_two_exp = Player1Won ? loserXp : winnerXp;
-	  let winnerId = Player1Won ? parseInt(game._player1.id) : parseInt(game._player2.id);
-	  let loserId = Player1Won ? parseInt(game._player2.id) : parseInt(game._player1.id);
+      const Player1Won = gameState.player1Score > gameState.player2Score;
+      const player_one_exp = Player1Won ? winnerXp : loserXp;
+      const player_two_exp = Player1Won ? loserXp : winnerXp;
+      const winnerId = Player1Won
+        ? parseInt(game._player1.id)
+        : parseInt(game._player2.id);
+      const loserId = Player1Won
+        ? parseInt(game._player2.id)
+        : parseInt(game._player1.id);
       await this.prisma.$transaction([
         this.prisma.match.create({
           data: {
@@ -230,27 +216,26 @@ export class GameGateway
             game_mode: game._gameMode,
           },
         }),
-		this.prisma.user.update({
-			where: {
-				id: winnerId,
-			},
-			data: {
-				exp: {
-					increment: winnerXp,
-				},
-			},
-		}),
-		this.prisma.user.update({
-			where: {
-				id: loserId,
-			},
-			data: {
-				exp: {
-					increment: loserXp,
-				},
-			},
-		}),
-
+        this.prisma.user.update({
+          where: {
+            id: winnerId,
+          },
+          data: {
+            exp: {
+              increment: winnerXp,
+            },
+          },
+        }),
+        this.prisma.user.update({
+          where: {
+            id: loserId,
+          },
+          data: {
+            exp: {
+              increment: loserXp,
+            },
+          },
+        }),
       ]);
     } catch (err) {
       console.log(err);
@@ -296,7 +281,7 @@ export class GameGateway
       client.userData.id.toString(),
       this,
     );
-	newGame._gameMode = 'Frisky';
+    newGame._gameMode = 'Frisky';
     this.games.set(newGame._id, newGame);
     this.server.sockets.sockets.get(socketId).join(newGame._id);
     client.join(newGame._id);
