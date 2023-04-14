@@ -60,7 +60,6 @@ model Direct_message {
   recipient    User     @relation(fields: [recipient_id], references: [id], name: "received")
   recipient_id Int
   sent_at      DateTime @default(now())
-  unsent       Boolean
 }
 
 enum GameMode {
@@ -133,5 +132,4 @@ model Channel_message {
   author_id  Int
   content    String
   sent_at    DateTime @default(now())
-  unsent     Boolean
 }

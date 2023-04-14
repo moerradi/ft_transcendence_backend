@@ -58,6 +58,19 @@ export class ProfileService {
 
   // add method to get profile by username (only public data)
   async getProfile(userId: number, login: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { login },
+      select: {
+        id: true,
+        login: true,
+        first_name: true,
+        last_name: true,
+        avatar_url: true,
+        exp: true,
+        level: true,
+      },
+    });
+    if (!user) return null;
     let friendshipStatus = 'NOT_FRIENDS';
     // get requester user
     const requester = await this.prisma.user.findUnique({
@@ -98,102 +111,64 @@ export class ProfileService {
         }
       }
     }
-    const user = await this.prisma.user.findUnique({
-      where: { login },
-      select: {
-        id: true,
-        login: true,
-        first_name: true,
-        last_name: true,
-        avatar_url: true,
-        exp: true,
-        level: true,
-        matches_as_player_one: {
-          select: {
-            id: true,
-            player_one: {
-              select: {
-                login: true,
-                id: true,
-              },
-            },
-            player_two: {
-              select: {
-                login: true,
-                id: true,
-              },
-            },
-            game_mode: true,
-            player_one_score: true,
-            player_two_score: true,
-            player_one_exp: true,
-            player_two_exp: true,
-            started_at: true,
-          },
-          orderBy: {
-            started_at: 'desc',
-          },
-          take: 10,
+    // calculate win/loss ratio
+    const [wins, losses, recentMatches] = await this.prisma.$transaction([
+      this.prisma
+        .$queryRaw`SELECT COUNT(*) FROM "Match" WHERE ("player_one_id" = ${userId} AND "player_one_score" > "player_two_score") OR ("player_two_id" = ${userId} AND "player_two_score" > "player_one_score");`,
+      this.prisma
+        .$queryRaw`SELECT COUNT(*) FROM "Match" WHERE ("player_one_id" = ${userId} AND "player_one_score" < "player_two_score") OR ("player_two_id" = ${userId} AND "player_two_score" < "player_one_score");`,
+      this.prisma.match.findMany({
+        where: {
+          OR: [{ player_one_id: userId }, { player_two_id: userId }],
         },
-        matches_as_player_two: {
-          select: {
-            id: true,
-            player_one: {
-              select: {
-                login: true,
-                id: true,
-              },
+        include: {
+          player_one: {
+            select: {
+              id: true,
+              login: true,
             },
-            player_two: {
-              select: {
-                login: true,
-                id: true,
-              },
+          },
+          player_two: {
+            select: {
+              id: true,
+              login: true,
             },
-            game_mode: true,
-            player_one_score: true,
-            player_two_score: true,
-            player_one_exp: true,
-            player_two_exp: true,
-            started_at: true,
           },
-          orderBy: {
-            started_at: 'desc',
-          },
-          take: 10,
         },
-      },
-    });
-    if (!user) return null;
-    const matchHistory = [
-      ...user.matches_as_player_one.map((match) => {
-        return {
-          ...match,
-          as_player: 1,
-        };
+        orderBy: {
+          started_at: 'desc',
+        },
+        take: 10,
       }),
-      ...user.matches_as_player_two.map((match) => {
+    ]);
+
+    const totalMatches = (wins as any).count + (losses as any).count;
+    const winPercentage = totalMatches ? (wins as any).count / totalMatches : 0;
+    const lossPercentage = totalMatches
+      ? (losses as any).count / totalMatches
+      : 0;
+    // add only exp for player who we are looking at
+    const recentMatchesWithExp = recentMatches.map((match) => {
+      if (match.player_one.id === userId) {
         return {
-          ...match,
-          as_player: 2,
+          player_one: match.player_one.login,
+          player_two: match.player_two.login,
+          player_one_score: match.player_one_score,
+          player_two_score: match.player_two_score,
+          started_at: match.started_at,
+          exp: match.player_one_exp,
         };
-      }),
-    ].map((match) => {
-      return {
-        id: match.id,
-        player_one: match.player_one.login,
-        player_one_id: match.player_one.id,
-        player_two: match.player_two.login,
-        player_two_id: match.player_two.id,
-        game_mode: match.game_mode,
-        player_one_score: match.player_one_score,
-        player_two_score: match.player_two_score,
-        gained_exp:
-          match.as_player === 1 ? match.player_one_exp : match.player_two_exp,
-        started_at: match.started_at,
-      };
+      } else {
+        return {
+          player_one: match.player_one.login,
+          player_two: match.player_two.login,
+          player_one_score: match.player_one_score,
+          player_two_score: match.player_two_score,
+          started_at: match.started_at,
+          exp: match.player_two_exp,
+        };
+      }
     });
-    const last10Matches = matchHistory.slice(0, 10);
     const friends = await this.getFriends(login);
     return {
       id: user.id,
@@ -203,9 +178,11 @@ export class ProfileService {
       avatar_url: user.avatar_url,
       exp: user.exp,
       level: user.level,
-      matchHistory: last10Matches,
+      matchHistory: recentMatchesWithExp,
       friends: friends,
       friendship: friendshipStatus,
+      winPercentage,
+      lossPercentage,
     };
   }
 

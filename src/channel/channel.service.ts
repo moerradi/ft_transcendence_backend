@@ -8,39 +8,135 @@ import { CreateChannelDto, UpdateChannelDto } from './dto/channel.dto';
 export class ChannelService {
   constructor(private prisma: PrismaService) {}
 
-  getAllChannels(userId: number) {
-    return this.prisma.channel.findMany({
-      select: {
-        id: true,
-        name: true,
-        type: true,
-        icon_url: true,
-        owner_id: true,
+  async getAllChannels(userId: number) {
+    const userChannels = await this.prisma.channel_user.findMany({
+      where: {
+        user_id: userId,
       },
+      select: {
+        channel: {
+          select: {
+            id: true,
+            name: true,
+            icon_url: true,
+            type: true,
+            owner_id: true,
+            messages: {
+              select: {
+                sent_at: true,
+              },
+            },
+          },
+        },
+        status: true,
+      },
+    });
+    const channelsWithAdminOwnerInfo = userChannels.map(
+      ({ channel, status }) => {
+        const latestMessageSentAt = channel.messages.reduce(
+          (latest, message) => {
+            return latest > message.sent_at ? latest : message.sent_at;
+          },
+          new Date(0),
+        );
+
+        return {
+          ...channel,
+          isAdmin: status === 'ADMIN',
+          isOwner: channel.owner_id === userId,
+          latestMessageSentAt: latestMessageSentAt,
+        };
+      },
+    );
+    const sortedChannels = channelsWithAdminOwnerInfo.sort(
+      (a, b) =>
+        b.latestMessageSentAt.getTime() - a.latestMessageSentAt.getTime(),
+    );
+    return sortedChannels.map((channel) => {
+      delete channel.messages;
+      return channel;
+    });
+  }
+
+  async getChannelMeInfo(channelId: number, userId: number) {
+    const user = await this.prisma.channel_user.findFirst({
+      where: {
+        channel_id: channelId,
+        user_id: userId,
+      },
+      select: {
+        status: true,
+      },
+    });
+    if (!user) {
+      throw new BadRequestException('User is not a member of this channel');
+    }
+    const channels = await this.prisma.channel.findUnique({
+      where: {
+        id: channelId,
+      },
+    });
+    if (!channels) {
+      throw new BadRequestException('Channel does not exist');
+    }
+    return {
+      isAdmin: user.status === 'ADMIN',
+      isOwner: channels.owner_id === userId,
+    };
+  }
+
+  async searchChannels(userId: number, query: string) {
+    const channels = await this.prisma.channel.findMany({
       where: {
         OR: [
           {
-            type: ChannelType.PUBLIC,
+            type: 'PUBLIC',
+            name: {
+              contains: query,
+              mode: 'insensitive',
+            },
           },
           {
             users: {
               some: {
-                user: {
-                  id: userId,
-                },
+                user_id: userId,
+                status: 'MEMBER',
               },
             },
-          },
-          {
-            owner_id: userId,
+            name: {
+              contains: query,
+              mode: 'insensitive',
+            },
           },
         ],
       },
+      include: {
+        users: {
+          select: {
+            user_id: true,
+            status: true,
+          },
+        },
+      },
     });
+    // inject wether user is admin or owner
+    return channels.map((channel) => ({
+      id: channel.id,
+      name: channel.name,
+      icon_url: channel.icon_url,
+      type: channel.type,
+      owner_id: channel.owner_id,
+      isAdmin: channel.users.some(
+        (user) => user.user_id === userId && user.status === 'ADMIN',
+      ),
+      isOwner: channel.users.some(
+        (user) => user.user_id === userId && user.status === 'OWNER',
+      ),
+    }));
   }
 
-  getChannelMessages(channelId: number) {
-    return this.prisma.channel_message.findMany({
+  async getChannelMessages(channelId: number) {
+    return await this.prisma.channel_message.findMany({
       where: {
         channel_id: channelId,
       },
@@ -64,7 +160,7 @@ export class ChannelService {
   }
 
   async addMemberToChannel(channelId: number, userId: number) {
-    return this.prisma.channel_user.create({
+    return await this.prisma.channel_user.create({
       data: {
         user_id: userId,
         channel_id: channelId,
@@ -74,7 +170,7 @@ export class ChannelService {
   }
 
   async addMembersToChannel(channelId: number, userIds: number[]) {
-    return this.prisma.channel_user.createMany({
+    return await this.prisma.channel_user.createMany({
       data: userIds.map((userId) => ({
         user_id: userId,
         channel_id: channelId,

@@ -8,6 +8,7 @@ import {
   ParseIntPipe,
   Post,
   Put,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -31,10 +32,22 @@ export class ChannelController {
     return this.channelService.createChannel(data, req.user.id);
   }
 
-  @Get(':id')
+  @Get('search')
+  @UseGuards(JwtAccessTokenGuard)
+  async search(@Req() req, @Query('q') q: string) {
+    return this.channelService.searchChannels(req.user.id, q);
+  }
+
+  @Get(':id/info')
   @UseGuards(JwtAccessTokenGuard)
   async getChannel(@Param('id', ParseIntPipe) id: number) {
     return this.channelService.getChannel(id);
+  }
+
+  @Get(':id/me')
+  @UseGuards(JwtAccessTokenGuard)
+  async channelMeInfo(@Param('id', ParseIntPipe) id: number, @Req() req) {
+    return this.channelService.getChannelMeInfo(id, req.user.id);
   }
 
   @Get(':id/messages')
