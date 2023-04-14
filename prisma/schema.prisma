@@ -102,7 +102,7 @@ model Channel {
   name       String
   owner      User              @relation(fields: [owner_id], references: [id])
   owner_id   Int
-  icon_url   String
+  icon_url   String?
   type       ChannelType
   password   String?
   messages   Channel_message[]
@@ -117,6 +117,7 @@ enum ChannelUserStatus {
   BANNED
   MEMBER
   ADMIN
+  OWNER
 }
 
 model Channel_user {

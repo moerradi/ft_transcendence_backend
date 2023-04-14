@@ -148,7 +148,7 @@ export class GameGateway
     client: Socket & { userData: { id: string; login: string } },
     payload: { playerY: number },
   ): void {
-	const game = this.getGameByPlayerId(client.userData.id);
+    const game = this.getGameByPlayerId(client.userData.id);
     game.movePlayer(payload.playerY, client.userData.id);
   }
 
@@ -229,8 +229,8 @@ export class GameGateway
         player_two_id: parseInt(game._player2.id),
         player_one_score: game._player1.score,
         player_two_score: game._player2.score,
-        // player_one_exp: winnerExp,
-        // player_two_exp: loserExp,
+        player_one_exp: 100,
+        player_two_exp: 100,
         finished_at: new Date(),
         game_mode: game._gameMode,
         started_at: new Date(),
