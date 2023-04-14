@@ -57,18 +57,20 @@ export class ProfileService {
   }
 
   // add method to get profile by username (only public data)
-  async getProfile(requester: string, login: string) {
+  async getProfile(userId: number, login: string) {
     let friendshipStatus = 'NOT_FRIENDS';
-    if (requester === login) {
+    // get requester user
+    const requester = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+    if (requester.login === login) {
       friendshipStatus = 'SELF';
     } else {
       const f = await this.prisma.friendship.findFirst({
         where: {
           OR: [
             {
-              requester: {
-                login: requester,
-              },
+              requester_id: userId,
               addressee: {
                 login: login,
               },
@@ -77,9 +79,7 @@ export class ProfileService {
               requester: {
                 login: login,
               },
-              addressee: {
-                login: requester,
-              },
+              addressee_id: userId,
             },
           ],
         },
@@ -101,7 +101,7 @@ export class ProfileService {
     const user = await this.prisma.user.findUnique({
       where: { login },
       select: {
-		id: true,
+        id: true,
         login: true,
         first_name: true,
         last_name: true,
@@ -126,6 +126,8 @@ export class ProfileService {
             game_mode: true,
             player_one_score: true,
             player_two_score: true,
+            player_one_exp: true,
+            player_two_exp: true,
             started_at: true,
           },
           orderBy: {
@@ -151,6 +153,8 @@ export class ProfileService {
             game_mode: true,
             player_one_score: true,
             player_two_score: true,
+            player_one_exp: true,
+            player_two_exp: true,
             started_at: true,
           },
           orderBy: {
@@ -162,8 +166,18 @@ export class ProfileService {
     });
     if (!user) return null;
     const matchHistory = [
-      ...user.matches_as_player_one,
-      ...user.matches_as_player_two,
+      ...user.matches_as_player_one.map((match) => {
+        return {
+          ...match,
+          as_player: 1,
+        };
+      }),
+      ...user.matches_as_player_two.map((match) => {
+        return {
+          ...match,
+          as_player: 2,
+        };
+      }),
     ].map((match) => {
       return {
         id: match.id,
@@ -174,13 +188,15 @@ export class ProfileService {
         game_mode: match.game_mode,
         player_one_score: match.player_one_score,
         player_two_score: match.player_two_score,
+        gained_exp:
+          match.as_player === 1 ? match.player_one_exp : match.player_two_exp,
         started_at: match.started_at,
       };
     });
     const last10Matches = matchHistory.slice(0, 10);
     const friends = await this.getFriends(login);
     return {
-	  id: user.id,
+      id: user.id,
       login: user.login,
       first_name: user.first_name,
       last_name: user.last_name,

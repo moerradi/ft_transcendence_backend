@@ -54,7 +54,7 @@ export class ProfileController {
     @Req() req: Request & { user: userPayload },
     @Param('login') login: string,
   ) {
-    const profile = await this.profileService.getProfile(req.user.login, login);
+    const profile = await this.profileService.getProfile(req.user.id, login);
     if (!profile) {
       throw new NotFoundException('Profile not found');
     }

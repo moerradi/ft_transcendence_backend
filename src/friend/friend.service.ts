@@ -5,9 +5,9 @@ import { PrismaService } from 'src/prisma/prisma.service';
 export class FriendService {
   constructor(private prisma: PrismaService) {}
 
-  async getFriends(login: string) {
+  async getFriends(userId: number) {
     const user = await this.prisma.user.findUnique({
-      where: { login },
+      where: { id: userId },
       include: {
         sent_requests: {
           where: { status: 'ACCEPTED' },
@@ -36,7 +36,7 @@ export class FriendService {
       },
     });
     if (!user) {
-      throw new BadRequestException(`User with login "${login}" not found`);
+      throw new BadRequestException(`User with id "${userId}" not found`);
     }
     const ret = [
       ...user.sent_requests.map((friendship: any) => friendship.addressee),
@@ -45,12 +45,10 @@ export class FriendService {
     return ret;
   }
 
-  async getFriendRequests(login: string) {
+  async getFriendRequests(userId: number) {
     const friendships = await this.prisma.friendship.findMany({
       where: {
-        addressee: {
-          login: login,
-        },
+        addressee_id: userId,
         status: 'PENDING',
       },
       select: {
@@ -66,12 +64,10 @@ export class FriendService {
     return friendships.map((friendship: any) => friendship.requester);
   }
 
-  async getSentFriendRequests(login: string) {
+  async getSentFriendRequests(userId: number) {
     const fiendships = await this.prisma.friendship.findMany({
       where: {
-        requester: {
-          login: login,
-        },
+        requester_id: userId,
         status: 'PENDING',
       },
       select: {
@@ -87,45 +83,45 @@ export class FriendService {
     return fiendships.map((friendship: any) => friendship.addressee);
   }
 
-  async sendFriendRequest(login: string, addressee: string) {
-    if (login === addressee) {
+  async sendFriendRequest(userId: number, addressee: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+    if (!user) {
+      throw new BadRequestException(`User with id "${userId}" not found`);
+    }
+    const addresseeUser = await this.prisma.user.findUnique({
+      where: { login: addressee },
+    });
+    if (!addresseeUser) {
+      throw new BadRequestException(`User with login "${addressee}" not found`);
+    }
+    if (addresseeUser.id === userId) {
       throw new BadRequestException(
         `You can't send friend request to yourself`,
       );
     }
-    const user = await this.prisma.user.findUnique({
-      where: { login },
-    });
-    const addresseeUser = await this.prisma.user.findUnique({
-      where: { login: addressee },
-    });
-    if (!user) {
-      throw new BadRequestException(`User with login "${login}" not found`);
-    }
-    if (!addresseeUser) {
-      throw new BadRequestException(`User with login "${addressee}" not found`);
-    }
-    const friendship = await this.prisma.friendship.findMany({
+    const friendship = await this.prisma.friendship.findFirst({
       where: {
         OR: [
           {
-            requester_id: user.id,
+            requester_id: userId,
             addressee_id: addresseeUser.id,
           },
           {
             requester_id: addresseeUser.id,
-            addressee_id: user.id,
+            addressee_id: userId,
           },
         ],
       },
     });
-    if (friendship && friendship.length > 0) {
+    if (friendship) {
       throw new BadRequestException(`Friendship already exists`);
     }
     try {
       await this.prisma.friendship.create({
         data: {
-          requester_id: user.id,
+          requester_id: userId,
           addressee_id: addresseeUser.id,
           status: 'PENDING',
         },

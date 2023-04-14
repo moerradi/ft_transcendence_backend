@@ -11,19 +11,19 @@ export class FriendController {
   @Get('/')
   @UseGuards(JwtAccessTokenGuard)
   async getFriends(@Req() req: Request & { user: userPayload }) {
-    return await this.friendService.getFriends(req.user.login);
+    return await this.friendService.getFriends(req.user.id);
   }
 
   @Get('requests')
   @UseGuards(JwtAccessTokenGuard)
   async getFriendRequests(@Req() req: Request & { user: userPayload }) {
-    return await this.friendService.getFriendRequests(req.user.login);
+    return await this.friendService.getFriendRequests(req.user.id);
   }
 
   @Get('requests/sent')
   @UseGuards(JwtAccessTokenGuard)
   async getSentFriendRequests(@Req() req: Request & { user: userPayload }) {
-    return await this.friendService.getSentFriendRequests(req.user.login);
+    return await this.friendService.getSentFriendRequests(req.user.id);
   }
 
   @Post('add/:login')
@@ -32,7 +32,7 @@ export class FriendController {
     @Req() req: Request & { user: userPayload },
     @Param('login') login: string,
   ) {
-    return await this.friendService.sendFriendRequest(req.user.login, login);
+    return await this.friendService.sendFriendRequest(req.user.id, login);
   }
 
   @Post('accept/:login')
