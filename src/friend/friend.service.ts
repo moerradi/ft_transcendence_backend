@@ -1,13 +1,15 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
+import { User } from '@prisma/client';
+import { GameGateway } from 'src/game/game.gateway';
 import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class FriendService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService, private gateway: GameGateway) {}
 
-  async getFriends(userId: number) {
+  async getFriends(login: string): Promise<User[]> {
     const user = await this.prisma.user.findUnique({
-      where: { id: userId },
+      where: { login },
       include: {
         sent_requests: {
           where: { status: 'ACCEPTED' },
@@ -36,13 +38,18 @@ export class FriendService {
       },
     });
     if (!user) {
-      throw new BadRequestException(`User with id "${userId}" not found`);
+      throw new BadRequestException(`User with login "${login}" not found`);
     }
-    const ret = [
+
+    const friends = [
       ...user.sent_requests.map((friendship: any) => friendship.addressee),
       ...user.received_requests.map((friendship: any) => friendship.requester),
-    ];
-    return ret;
+    ].map((friend) => ({
+      ...friend,
+      status: this.gateway.status(friend.id),
+    }));
+
+    return friends;
   }
 
   async getFriendRequests(userId: number) {
