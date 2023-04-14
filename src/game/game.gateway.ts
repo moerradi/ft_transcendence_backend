@@ -16,7 +16,7 @@ import { GameMode } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
 import { PrismaService } from 'src/prisma/prisma.service';
 
-type status = 'Online' | 'InGame';
+type status = 'Online' | 'InGame' | 'Offline';
 
 interface Player {
   id: number;
@@ -48,6 +48,19 @@ export class GameGateway
 
   public connectedUsers = new Map<number, string>();
 
+  status(id: number): status {
+    for (const game of this.games.values()) {
+      const sid = id.toString();
+      if (game._player1.id === sid || game._player2.id === sid) {
+        return 'InGame';
+      }
+    }
+    if (this.connectedUsers.has(id)) {
+      return 'Online';
+    }
+    return 'Offline';
+  }
+
   handleConnection(client: Socket & { userData: UserData }, ...args: any[]) {
     try {
       console.log('handleConnection');
@@ -71,6 +84,7 @@ export class GameGateway
         this.connectedUsers.set(client.userData.id, client.id);
       }
       this.connectedUsers.set(client.userData.id, client.id);
+      this.server.emit('status-updated');
     } catch (err) {
       console.log(err);
       client.disconnect();
@@ -87,6 +101,7 @@ export class GameGateway
 
   handleDisconnect(client: Socket & { userData: UserData }) {
     this.connectedUsers.delete(client.userData.id);
+    this.server.emit('status-updated');
     const playerIndex = this.waitingPlayers.forEach((mode) => {
       const playerIndex = mode.findIndex(
         (player) => player === client.userData.id,
@@ -152,6 +167,7 @@ export class GameGateway
       const newGame = new game(player1.toString(), player2.toString(), this);
       newGame._gameMode = payload.gameMode as GameMode;
       this.games.set(newGame._id, newGame);
+      this.server.emit('status-updated');
       this.server.sockets.sockets.get(socketId1).join(newGame._id);
       this.server.sockets.sockets.get(socketId2).join(newGame._id);
       this.games.get(newGame._id).startGame();
@@ -244,6 +260,7 @@ export class GameGateway
       console.log(err);
     }
     this.games.delete(gameId);
+    this.server.emit('status-updated');
   }
 
   @SubscribeMessage('invite')
@@ -286,6 +303,7 @@ export class GameGateway
     );
     newGame._gameMode = 'Frisky';
     this.games.set(newGame._id, newGame);
+    this.server.emit('status-updated');
     this.server.sockets.sockets.get(socketId).join(newGame._id);
     client.join(newGame._id);
     this.games.get(newGame._id).startGame();
