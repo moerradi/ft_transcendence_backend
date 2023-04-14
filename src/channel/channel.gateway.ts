@@ -79,7 +79,7 @@ export class ChannelGateway
     // console.log(`Client disconnected from chat: ${client.userData.id}`);
   }
 
-  @SubscribeMessage('message')
+  @SubscribeMessage('channel:message')
   async handleMessage(
     client: Socket & {
       userData: Partial<User>;
@@ -124,7 +124,7 @@ export class ChannelGateway
     });
   }
 
-  @SubscribeMessage('join')
+  @SubscribeMessage('channel:join')
   async handleJoin(
     client: Socket & {
       userData: Partial<User>;
@@ -160,7 +160,7 @@ export class ChannelGateway
     client.join(payload);
   }
 
-  @SubscribeMessage('leave')
+  @SubscribeMessage('channel:leave')
   handleLeave(client: Socket, payload: any) {
     client.leave(payload);
   }

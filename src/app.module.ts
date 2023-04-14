@@ -7,6 +7,7 @@ import { GameModule } from './game/game.module';
 import { FriendModule } from './friend/friend.module';
 import { HomeModule } from './home/home.module';
 import { ChannelModule } from './channel/channel.module';
+import { MessageModule } from './message/message.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { ChannelModule } from './channel/channel.module';
     FriendModule,
     HomeModule,
     ChannelModule,
+    MessageModule,
   ],
   controllers: [],
   providers: [],
