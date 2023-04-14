@@ -127,7 +127,6 @@ export class ProfileService {
             player_one_score: true,
             player_two_score: true,
             started_at: true,
-            finished_at: true,
           },
           orderBy: {
             started_at: 'desc',
@@ -153,7 +152,6 @@ export class ProfileService {
             player_one_score: true,
             player_two_score: true,
             started_at: true,
-            finished_at: true,
           },
           orderBy: {
             started_at: 'desc',
@@ -177,7 +175,6 @@ export class ProfileService {
         player_one_score: match.player_one_score,
         player_two_score: match.player_two_score,
         started_at: match.started_at,
-        finished_at: match.finished_at,
       };
     });
     const last10Matches = matchHistory.slice(0, 10);
@@ -248,9 +245,7 @@ export class ProfileService {
             game_mode: true,
             player_one_score: true,
             player_two_score: true,
-            status: true,
             started_at: true,
-            finished_at: true,
           },
           orderBy: {
             started_at: 'desc',
@@ -266,9 +261,7 @@ export class ProfileService {
             game_mode: true,
             player_one_score: true,
             player_two_score: true,
-            status: true,
             started_at: true,
-            finished_at: true,
           },
           orderBy: {
             started_at: 'desc',
