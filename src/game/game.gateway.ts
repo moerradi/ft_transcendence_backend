@@ -14,6 +14,7 @@ import * as jwt from 'jsonwebtoken';
 import { userPayload } from '../auth/types/userPayload';
 import { GameMode } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
+import { PrismaService } from 'src/prisma/prisma.service';
 
 type status = 'Online' | 'InGame';
 
@@ -34,6 +35,7 @@ export class GameGateway
   constructor(
     private gameService: GameService,
     private configService: ConfigService,
+    private prisma: PrismaService,
   ) {
     console.log('GameGateway constructor');
   }
@@ -82,7 +84,6 @@ export class GameGateway
   }
 
   handleDisconnect(client: Socket & { userData: UserData }) {
-    console.log('disconnected', client.userData.id);
     this.connectedUsers.delete(client.userData.id);
     const playerIndex = this.waitingPlayers.forEach((mode) => {
       const playerIndex = mode.findIndex(
@@ -115,7 +116,6 @@ export class GameGateway
   ): void {
     const game = this.games.get(payload.gameId);
     if (!game) {
-      console.log('game not found wtf', payload.gameId);
       return;
     }
     game.movePlayer(payload.playerY, client.userData.id.toString());
@@ -174,7 +174,6 @@ export class GameGateway
   }
 
   async handleGameOver(gameId: string) {
-    console.log(this.games);
     // emit game over to both
     const game = this.games.get(gameId);
     if (!game) {
@@ -191,6 +190,72 @@ export class GameGateway
       this.server.sockets.sockets.get(socketId2).leave(gameId);
     }
     // unjoin the players from the game room
+    try {
+      // calculate winner
+      const gameState = game.getGameState();
+      console.log(gameState);
+      console.log(game._gameMode);
+      console.log(game._player1.id);
+      console.log(game._player2.id);
+      // calculate winner xp based on goal difference
+      const winnerXp =
+        Math.abs(gameState.player1Score - gameState.player2Score) * 10 + 100;
+      const loserXp = 100;
+      // await this.prisma.match.create({
+      // 	data: {
+      // 		player_one_id: parseInt(game._player1.id),
+      // 		player_two_id: parseInt(game._player2.id),
+      // 		player_one_score: gameState.player1Score,
+      // 		player_two_score: gameState.player2Score,
+      // 		player_one_exp: gameState.player1Score > gameState.player2Score ? winnerXp : loserXp,
+      // 		player_two_exp: gameState.player1Score < gameState.player2Score ? winnerXp : loserXp,
+      // 		game_mode: game._gameMode,
+      // 	},
+
+      // });
+      // transsaction
+	  let Player1Won = gameState.player1Score > gameState.player2Score;
+	  let player_one_exp = Player1Won ? winnerXp : loserXp;
+	  let player_two_exp = Player1Won ? loserXp : winnerXp;
+	  let winnerId = Player1Won ? parseInt(game._player1.id) : parseInt(game._player2.id);
+	  let loserId = Player1Won ? parseInt(game._player2.id) : parseInt(game._player1.id);
+      await this.prisma.$transaction([
+        this.prisma.match.create({
+          data: {
+            player_one_id: parseInt(game._player1.id),
+            player_two_id: parseInt(game._player2.id),
+            player_one_score: gameState.player1Score,
+            player_two_score: gameState.player2Score,
+            player_one_exp: player_one_exp,
+            player_two_exp: player_two_exp,
+            game_mode: game._gameMode,
+          },
+        }),
+		this.prisma.user.update({
+			where: {
+				id: winnerId,
+			},
+			data: {
+				exp: {
+					increment: winnerXp,
+				},
+			},
+		}),
+		this.prisma.user.update({
+			where: {
+				id: loserId,
+			},
+			data: {
+				exp: {
+					increment: loserXp,
+				},
+			},
+		}),
+
+      ]);
+    } catch (err) {
+      console.log(err);
+    }
     this.games.delete(gameId);
   }
 
@@ -232,6 +297,7 @@ export class GameGateway
       client.userData.id.toString(),
       this,
     );
+	newGame._gameMode = 'Frisky';
     this.games.set(newGame._id, newGame);
     this.server.sockets.sockets.get(socketId).join(newGame._id);
     client.join(newGame._id);
@@ -249,7 +315,6 @@ export class GameGateway
     payload: { gameId: string },
   ): Promise<void> {
     const game = this.games.get(payload.gameId);
-    console.log(this.games);
     if (game) {
       game.gameOver(true);
     }

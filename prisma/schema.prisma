@@ -63,12 +63,6 @@ model Direct_message {
   unsent       Boolean
 }
 
-enum MatchStatus {
-  ONGOING
-  FINISHED
-  CANCELLED
-}
-
 enum GameMode {
   Frisky
   Fierce
@@ -86,9 +80,7 @@ model Match {
   player_two_score Int
   player_one_exp   Int
   player_two_exp   Int
-  status           MatchStatus
-  started_at       DateTime
-  finished_at      DateTime
+  started_at       DateTime   @default(now())
 }
 
 enum ChannelType {
