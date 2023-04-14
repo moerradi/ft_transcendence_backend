@@ -49,6 +49,7 @@ export class ChannelService {
           select: {
             login: true,
             id: true,
+            avatar_url: true,
           },
         },
       },
@@ -215,16 +216,19 @@ export class ChannelService {
       where: {
         channel_id: channelId,
       },
-      include: {
+      select: {
+        status: true,
         user: {
           select: {
             id: true,
             login: true,
+            avatar_url: true,
+            created_at: true,
           },
         },
       },
     });
-    return channel.map((c) => c.user);
+    return channel;
   }
 
   async removeMemberFromChannel(channelId: number, memberId: number) {
