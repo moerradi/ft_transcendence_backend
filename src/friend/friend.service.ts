@@ -312,12 +312,12 @@ export class FriendService {
   }
 
   async unblockFriend(requester_id: number, login: string) {
-    const toblock = await this.prisma.user.findUnique({
+    const toUnblock = await this.prisma.user.findUnique({
       where: {
         login: login,
       },
     });
-    if (!toblock) {
+    if (!toUnblock) {
       throw new BadRequestException(`User with login "${login}" not found`);
     }
     const friendship = await this.prisma.friendship.findFirst({
@@ -325,10 +325,10 @@ export class FriendService {
         OR: [
           {
             requester_id: requester_id,
-            addressee_id: toblock.id,
+            addressee_id: toUnblock.id,
           },
           {
-            requester_id: toblock.id,
+            requester_id: toUnblock.id,
             addressee_id: requester_id,
           },
         ],
@@ -340,23 +340,18 @@ export class FriendService {
       throw new BadRequestException(`Friendship not blocked`);
     }
     try {
-      await this.prisma.friendship.update({
+      await this.prisma.friendship.delete({
         where: {
           friendship_id: {
             requester_id: friendship.requester_id,
             addressee_id: friendship.addressee_id,
           },
         },
-        data: {
-          requester_id: requester_id,
-          addressee_id: toblock.id,
-          status: 'ACCEPTED',
-        },
       });
+      return { suceess: true };
     } catch (e) {
       console.log(e);
       throw new BadRequestException(`Something went wrong`);
     }
-    return { suceess: true };
   }
 }
