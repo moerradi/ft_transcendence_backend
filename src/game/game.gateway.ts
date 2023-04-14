@@ -211,7 +211,6 @@ export class GameGateway
       // 		player_two_exp: gameState.player1Score < gameState.player2Score ? winnerXp : loserXp,
       // 		game_mode: game._gameMode,
       // 	},
-
       // });
       // transsaction
 	  let Player1Won = gameState.player1Score > gameState.player2Score;

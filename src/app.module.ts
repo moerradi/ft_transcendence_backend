@@ -6,6 +6,7 @@ import { ProfileModule } from './profile/profile.module';
 import { GameModule } from './game/game.module';
 import { FriendModule } from './friend/friend.module';
 import { HomeModule } from './home/home.module';
+import { ChannelModule } from './channel/channel.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { HomeModule } from './home/home.module';
     GameModule,
     FriendModule,
     HomeModule,
+    ChannelModule,
   ],
   controllers: [],
   providers: [],
