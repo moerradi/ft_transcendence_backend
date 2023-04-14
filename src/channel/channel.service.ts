@@ -231,6 +231,26 @@ export class ChannelService {
     return channel;
   }
 
+  getNonMembers(channelId: number) {
+    return this.prisma.user.findMany({
+      where: {
+        NOT: {
+          channel_memberships: {
+            some: {
+              channel_id: channelId,
+            },
+          },
+        },
+      },
+      select: {
+        id: true,
+        login: true,
+        avatar_url: true,
+        created_at: true,
+      },
+    });
+  }
+
   async removeMemberFromChannel(channelId: number, memberId: number) {
     const channel = await this.prisma.channel.findUnique({
       where: {

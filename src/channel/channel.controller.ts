@@ -49,6 +49,12 @@ export class ChannelController {
     return this.channelService.getChannelMembers(id);
   }
 
+  @Get(':id/nonmembers')
+  @UseGuards(JwtAccessTokenGuard)
+  async nonMembers(@Param('id', ParseIntPipe) id: number) {
+    return this.channelService.getNonMembers(id);
+  }
+
   @Post(':id/members')
   @UseGuards(JwtAccessTokenGuard)
   async addMembers(
