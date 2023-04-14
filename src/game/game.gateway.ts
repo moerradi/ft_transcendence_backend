@@ -13,6 +13,7 @@ import { GameService } from './game.service';
 import * as jwt from 'jsonwebtoken';
 import { userPayload } from '../auth/types/userPayload';
 import { GameMode } from '@prisma/client';
+import { v4 as uuidv4 } from 'uuid';
 
 type status = 'Online' | 'InGame';
 
@@ -39,10 +40,11 @@ export class GameGateway
 
   //   public games: game[] = [];
   public games = new Map<string, game>();
-//   public waitingPlayers: Player[] = [];
- public waitingPlayers = new Map<string, number[]>();
- 
-public connectedUsers = new Map<number, string>();
+  //   public waitingPlayers: Player[] = [];
+  public waitingPlayers = new Map<string, number[]>();
+  public gameInvitations = new Map<string, { from: number; to: number }>();
+
+  public connectedUsers = new Map<number, string>();
 
   handleConnection(client: Socket & { userData: UserData }, ...args: any[]) {
     try {
@@ -83,13 +85,13 @@ public connectedUsers = new Map<number, string>();
     console.log('disconnected', client.userData.id);
     this.connectedUsers.delete(client.userData.id);
     const playerIndex = this.waitingPlayers.forEach((mode) => {
-	  const playerIndex = mode.findIndex(
-		(player) => player === client.userData.id,
-	  );
-	  if (playerIndex !== -1) {
-		mode.splice(playerIndex, 1);
-	  }
-	});
+      const playerIndex = mode.findIndex(
+        (player) => player === client.userData.id,
+      );
+      if (playerIndex !== -1) {
+        mode.splice(playerIndex, 1);
+      }
+    });
     // check if in game and stop it
     const game = this.games.forEach((game) => {
       if (
@@ -113,7 +115,7 @@ public connectedUsers = new Map<number, string>();
   ): void {
     const game = this.games.get(payload.gameId);
     if (!game) {
-      // console.log('game not found wtf', payload.gameId)
+      console.log('game not found wtf', payload.gameId);
       return;
     }
     game.movePlayer(payload.playerY, client.userData.id.toString());
@@ -124,54 +126,51 @@ public connectedUsers = new Map<number, string>();
     client: Socket & { userData: UserData },
     payload: { gameMode: string },
   ): void {
-	const queue = this.waitingPlayers.get(payload.gameMode);
-	if (!queue) {
-	  this.waitingPlayers.set(payload.gameMode, [client.userData.id]);
-	  return;
-	}
-	const existingPlayer = queue.find(id => id === client.userData.id);
-	if (existingPlayer) {
+    const queue = this.waitingPlayers.get(payload.gameMode);
+    if (!queue) {
+      this.waitingPlayers.set(payload.gameMode, [client.userData.id]);
+      return;
+    }
+    const existingPlayer = queue.find((id) => id === client.userData.id);
+    if (existingPlayer) {
       console.log('existingPlayer', existingPlayer);
       return;
     }
-	queue.push(client.userData.id);
-	if (queue.length >= 2) {
-		const player1 = queue.pop();
-		const player2 = queue.pop();
-		const socketId1 = this.connectedUsers.get(player1);
-		const socketId2 = this.connectedUsers.get(player2);
-		if (!socketId1 || !socketId2) {
-			console.log('socketId not found');
-			return;
-		}
-      const newGame = new game(
-		player1.toString(),
-		player2.toString(),
-		this);
-	  newGame._gameMode = payload.gameMode as GameMode;
-	  this.games.set(newGame._id, newGame);
-	  this.server.sockets.sockets.get(socketId1).join(newGame._id);
-	  this.server.sockets.sockets.get(socketId2).join(newGame._id);
-	  this.games.get(newGame._id).startGame();
-	  this.server.to(socketId1).emit('gameReady', {
-		gameId: newGame._id,
-	  });
-	  this.server.to(socketId2).emit('gameReady', {
-		gameId: newGame._id,
-	  });
-	}
+    queue.push(client.userData.id);
+    if (queue.length >= 2) {
+      const player1 = queue.pop();
+      const player2 = queue.pop();
+      const socketId1 = this.connectedUsers.get(player1);
+      const socketId2 = this.connectedUsers.get(player2);
+      if (!socketId1 || !socketId2) {
+        console.log('socketId not found');
+        return;
+      }
+      const newGame = new game(player1.toString(), player2.toString(), this);
+      newGame._gameMode = payload.gameMode as GameMode;
+      this.games.set(newGame._id, newGame);
+      this.server.sockets.sockets.get(socketId1).join(newGame._id);
+      this.server.sockets.sockets.get(socketId2).join(newGame._id);
+      this.games.get(newGame._id).startGame();
+      this.server.to(socketId1).emit('gameReady', {
+        gameId: newGame._id,
+      });
+      this.server.to(socketId2).emit('gameReady', {
+        gameId: newGame._id,
+      });
+    }
   }
 
   @SubscribeMessage('leave_queue')
   handleLeaveQueue(client: Socket & { userData: UserData }): void {
     this.waitingPlayers.forEach((mode) => {
-	  const playerIndex = mode.findIndex(
-		(player) => player === client.userData.id,
-	  );
-	  if (playerIndex !== -1) {
-		mode.splice(playerIndex, 1);
-	  }
-	});
+      const playerIndex = mode.findIndex(
+        (player) => player === client.userData.id,
+      );
+      if (playerIndex !== -1) {
+        mode.splice(playerIndex, 1);
+      }
+    });
   }
 
   async handleGameOver(gameId: string) {
@@ -197,46 +196,52 @@ public connectedUsers = new Map<number, string>();
 
   @SubscribeMessage('invite')
   async handleInvite(
-    client: Socket & { userData: { id: string; login: string } },
+    client: Socket & { userData: UserData },
     payload: { userId: string },
   ): Promise<void> {
     const { id } = client.userData;
     // get player by login
     const socketId = this.connectedUsers.get(parseInt(payload.userId));
     if (socketId) {
-      const newGame = new game(id, payload.userId, this);
-      newGame._gameMode = 'Frisky';
-      this.games.set(newGame._id, newGame);
+      const inviteId = uuidv4();
+      this.gameInvitations.set(inviteId, {
+        from: id,
+        to: parseInt(payload.userId),
+      });
       this.server
         .to(socketId)
-        .emit('invited', { gameId: newGame._id, login: client.userData.login });
+        .emit('invited', { inviteId, login: client.userData.login });
     }
   }
 
   @SubscribeMessage('accept_invite')
   async handleAcceptInvite(
     client: Socket & { userData: UserData },
-    payload: { gameId: string },
+    payload: { inviteId: string },
   ): Promise<void> {
-    const game = this.games.get(payload.gameId);
-    if (game) {
-      const socketId = this.connectedUsers.get(parseInt(game._player1.id));
-      console.log('player2', socketId);
-      console.log('player1', client.id);
-      if (socketId) {
-        this.server.sockets.sockets.get(socketId).join(game._id);
-        client.join(game._id);
-        game.startGame();
-        client.emit('gameReady', {
-          gameId: game._id,
-        });
-        this.server.to(socketId).emit('gameReady', {
-          gameId: game._id,
-        });
-      } else {
-        console.log('socketId not found');
-      }
+    const invitation = this.gameInvitations.get(payload.inviteId);
+    if (!invitation) {
+      return;
     }
+    const socketId = this.connectedUsers.get(invitation.from);
+    if (!socketId) {
+      return;
+    }
+    const newGame = new game(
+      invitation.from.toString(),
+      client.userData.id.toString(),
+      this,
+    );
+    this.games.set(newGame._id, newGame);
+    this.server.sockets.sockets.get(socketId).join(newGame._id);
+    client.join(newGame._id);
+    this.games.get(newGame._id).startGame();
+    this.server.to(socketId).emit('gameReady', {
+      gameId: newGame._id,
+    });
+    this.server.to(client.id).emit('gameReady', {
+      gameId: newGame._id,
+    });
   }
   @SubscribeMessage('leaveGame')
   async handleLeaveGame(
