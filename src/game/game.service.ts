@@ -6,7 +6,6 @@ import { waitingPlayer } from './interfaces';
 @Injectable()
 export class GameService {
   private queue: waitingPlayer[] = [];
-  private games: game[] = [];
   joinQueue(playerId: string, client: Socket, gameMode: string) {
     if (this.queue.find((player) => player.id === playerId)) {
       return;
@@ -30,20 +29,6 @@ export class GameService {
     }
     // console.log('Leave_queue', this.queue);
   }
-  matchPlayers() {
-    if (this.queue.length >= 2) {
-      const player1 = this.queue.shift();
-      const player2 = this.queue.shift();
-      return [player1, player2];
-    }
-  }
-
-  gameOver(gameId: string) {
-    const gameIndex = this.games.findIndex((game) => game._id === gameId);
-    if (gameIndex !== -1) {
-      this.games.splice(gameIndex, 1);
-    }
-  }
 
   //   startGame(player1: waitingPlayer, player2: waitingPlayer) {
   // 	const new_game = new game(player1.id, player2.id, this);
@@ -55,9 +40,6 @@ export class GameService {
 
   getQueue() {
     return this.queue;
-  }
-  getGamesIndex(id: string) {
-    return this.games.findIndex((game) => game._id === id);
   }
 
   clearQueue(): void {

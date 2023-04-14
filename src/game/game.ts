@@ -1,7 +1,9 @@
 import { GameMode } from '@prisma/client';
+import { exit } from 'process';
 import { Socket } from 'socket.io';
 import { GameGateway } from './game.gateway';
 import { Ball, Player, Table } from './interfaces';
+import { v4 as uuidv4 } from 'uuid';
 
 export class game {
   public _id: string;
@@ -21,7 +23,7 @@ export class game {
   private TABLE_HEIGHT = 600;
 
   constructor(player1: string, player2: string, server: any) {
-    this._id = player1 + player2;
+    this._id = uuidv4();
     this._gateway = server;
     this._gameStatus = 'pending';
 
@@ -56,6 +58,7 @@ export class game {
   }
 
   public startGame() {
+	console.log('game started');
     this._gameStatus = 'playing';
     console.log('startGame');
     this.gameLoop();
@@ -136,7 +139,7 @@ export class game {
       this._player1.score++;
       this.initGoal();
     }
-    if (this._player1.score === 5 || this._player2.score === 5) this.gameOver();
+    // if (this._player1.score === 5 || this._player2.score === 5) this.gameOver();
   }
 
   getGameState() {
@@ -185,7 +188,8 @@ export class game {
     return gameState;
   }
 
-  gameOver() {
+  gameOver(forfeit: boolean) {
+	console.log('game over', this._id);
     this._gameStatus = 'gameover';
     this._gateway.handleGameOver(this._id);
   }
