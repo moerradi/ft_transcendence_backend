@@ -112,40 +112,47 @@ export class ProfileService {
       }
     }
     // calculate win/loss ratio
-    const [wins, losses, recentMatches] = await this.prisma.$transaction([
-      this.prisma
-        .$queryRaw`SELECT COUNT(*) FROM "Match" WHERE ("player_one_id" = ${userId} AND "player_one_score" > "player_two_score") OR ("player_two_id" = ${userId} AND "player_two_score" > "player_one_score");`,
-      this.prisma
-        .$queryRaw`SELECT COUNT(*) FROM "Match" WHERE ("player_one_id" = ${userId} AND "player_one_score" < "player_two_score") OR ("player_two_id" = ${userId} AND "player_two_score" < "player_one_score");`,
-      this.prisma.match.findMany({
-        where: {
-          OR: [{ player_one_id: userId }, { player_two_id: userId }],
-        },
-        include: {
-          player_one: {
-            select: {
-              id: true,
-              login: true,
+    const [wins, losses, draws, recentMatches] = await this.prisma.$transaction(
+      [
+        this.prisma
+          .$queryRaw`SELECT COUNT(*) FROM "Match" WHERE ("player_one_id" = ${userId} AND "player_one_score" > "player_two_score") OR ("player_two_id" = ${userId} AND "player_two_score" > "player_one_score");`,
+        this.prisma
+          .$queryRaw`SELECT COUNT(*) FROM "Match" WHERE ("player_one_id" = ${userId} AND "player_one_score" < "player_two_score") OR ("player_two_id" = ${userId} AND "player_two_score" < "player_one_score");`,
+        this.prisma
+          .$queryRaw`SELECT COUNT(*) FROM "Match" WHERE ("player_one_id" = ${userId} AND "player_one_score" = "player_two_score") OR ("player_two_id" = ${userId} AND "player_two_score" = "player_one_score");`,
+        this.prisma.match.findMany({
+          where: {
+            OR: [{ player_one_id: userId }, { player_two_id: userId }],
+          },
+          include: {
+            player_one: {
+              select: {
+                id: true,
+                login: true,
+              },
+            },
+            player_two: {
+              select: {
+                id: true,
+                login: true,
+              },
             },
           },
-          player_two: {
-            select: {
-              id: true,
-              login: true,
-            },
+          orderBy: {
+            started_at: 'desc',
           },
-        },
-        orderBy: {
-          started_at: 'desc',
-        },
-        take: 10,
-      }),
-    ]);
-
-    const totalMatches = (wins as any).count + (losses as any).count;
+          take: 10,
+        }),
+      ],
+    );
+    const totalMatches =
+      (wins as any).count + (losses as any).count + (draws as any).count;
     const winPercentage = totalMatches ? (wins as any).count / totalMatches : 0;
     const lossPercentage = totalMatches
       ? (losses as any).count / totalMatches
+      : 0;
+    const drawPercentage = totalMatches
+      ? (draws as any).count / totalMatches
       : 0;
     // add only exp for player who we are looking at
     const recentMatchesWithExp = recentMatches.map((match) => {
@@ -156,6 +163,7 @@ export class ProfileService {
           player_one_score: match.player_one_score,
           player_two_score: match.player_two_score,
           started_at: match.started_at,
+          game_mode: match.game_mode,
           exp: match.player_one_exp,
         };
       } else {
@@ -165,6 +173,7 @@ export class ProfileService {
           player_one_score: match.player_one_score,
           player_two_score: match.player_two_score,
           started_at: match.started_at,
+          game_mode: match.game_mode,
           exp: match.player_two_exp,
         };
       }
@@ -183,6 +192,7 @@ export class ProfileService {
       friendship: friendshipStatus,
       winPercentage,
       lossPercentage,
+      drawPercentage,
     };
   }
 
