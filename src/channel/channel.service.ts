@@ -12,6 +12,9 @@ export class ChannelService {
     const userChannels = await this.prisma.channel_user.findMany({
       where: {
         user_id: userId,
+        status: {
+          not: 'BANNED',
+        },
       },
       select: {
         channel: {
