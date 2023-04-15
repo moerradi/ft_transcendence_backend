@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Friendship, User } from '@prisma/client';
+import { User } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
@@ -122,7 +122,7 @@ export class ProfileService {
           .$queryRaw`SELECT COUNT(*) FROM "Match" WHERE ("player_one_id" = ${userId} AND "player_one_score" = "player_two_score") OR ("player_two_id" = ${userId} AND "player_two_score" = "player_one_score");`,
         this.prisma.match.findMany({
           where: {
-            OR: [{ player_one_id: userId }, { player_two_id: userId }],
+            OR: [{ player_one_id: user.id }, { player_two_id: user.id }],
           },
           include: {
             player_one: {
