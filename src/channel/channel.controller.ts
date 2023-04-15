@@ -133,4 +133,15 @@ export class ChannelController {
       throw new BadRequestException('You are not the owner of this channel');
     return this.channelService.deleteChannel(id, req.user.id);
   }
+
+  @Post(':id/ban')
+  @UseGuards(JwtAccessTokenGuard)
+  async banMember(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req,
+    @Body() data: { memberId: number },
+  ) {
+    console.log(data.memberId);
+    return this.channelService.banUser(id, req.user.id, data.memberId);
+  }
 }

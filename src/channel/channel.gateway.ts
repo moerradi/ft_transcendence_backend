@@ -156,12 +156,37 @@ export class ChannelGateway
         },
       });
     }
-
+    if (!userInChannel && client.currentChannel.type == 'PRIVATE') {
+      return;
+    }
+    if (userInChannel && userInChannel.status == 'BANNED') {
+      return;
+    }
     client.join(payload);
   }
 
   @SubscribeMessage('channel:leave')
   handleLeave(client: Socket, payload: any) {
     client.leave(payload);
+  }
+
+  @SubscribeMessage('channel:ban')
+  async handleBan(
+    client: Socket & {
+      userData: Partial<User>;
+    },
+    payload: any,
+  ) {
+    console.log('channel.ban', payload);
+    this.server.to(payload.channel_id).emit('message', {
+      channel_id: payload.channel_id,
+      author_id: client.userData.id,
+      content: `${payload.member_login} has been banned from this channel`,
+      sent_at: new Date(),
+    });
+    this.server.emit('channel:ban', {
+      channel_id: payload.channel_id,
+      user_id: payload.member_id,
+    });
   }
 }

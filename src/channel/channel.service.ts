@@ -109,6 +109,14 @@ export class ChannelService {
             },
           },
         ],
+        NOT: {
+          users: {
+            some: {
+              user_id: userId,
+              status: 'BANNED',
+            },
+          },
+        },
       },
       include: {
         users: {
@@ -448,7 +456,10 @@ export class ChannelService {
     if (!channeluser) {
       throw new BadRequestException('User not found');
     }
-    return channeluser.status === ChannelUserStatus.ADMIN;
+    return (
+      channeluser.status === ChannelUserStatus.ADMIN ||
+      channeluser.status === ChannelUserStatus.OWNER
+    );
   }
 
   async isBanned(userId: number, channelId: number) {
@@ -483,5 +494,50 @@ export class ChannelService {
       channeluser.status === ChannelUserStatus.ADMIN ||
       channeluser.status === ChannelUserStatus.OWNER
     );
+  }
+
+  async banUser(channelId: number, userId: number, memberId: number) {
+    const channel = await this.prisma.channel.findUnique({
+      where: {
+        id: channelId,
+      },
+    });
+    if (!channel) {
+      throw new BadRequestException('Channel not found');
+    }
+    const { isOwner, isAdmin } = await this.getChannelMeInfo(channelId, userId);
+    if (!isOwner && !isAdmin) {
+      throw new BadRequestException(
+        'You are not the owner or admin of this channel',
+      );
+    }
+    const member = await this.prisma.channel_user.findUnique({
+      where: {
+        cid: {
+          channel_id: channelId,
+          user_id: memberId,
+        },
+      },
+    });
+    if (!member) {
+      throw new BadRequestException('Member not found');
+    }
+    if (member.status === ChannelUserStatus.OWNER) {
+      throw new BadRequestException('You cannot ban the owner of the channel');
+    } else if (member.status === ChannelUserStatus.ADMIN && !isOwner) {
+      throw new BadRequestException('You cannot ban an admin of the channel');
+    }
+    await this.prisma.channel_user.update({
+      where: {
+        cid: {
+          channel_id: channelId,
+          user_id: memberId,
+        },
+      },
+      data: {
+        status: ChannelUserStatus.BANNED,
+      },
+    });
+    return { message: 'Member banned', success: true };
   }
 }
