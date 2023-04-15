@@ -145,15 +145,14 @@ export class ProfileService {
         }),
       ],
     );
-    const totalMatches =
-      (wins as any).count + (losses as any).count + (draws as any).count;
-    const winPercentage = totalMatches ? (wins as any).count / totalMatches : 0;
-    const lossPercentage = totalMatches
-      ? (losses as any).count / totalMatches
-      : 0;
-    const drawPercentage = totalMatches
-      ? (draws as any).count / totalMatches
-      : 0;
+    const winsCount = Number(wins[0].count);
+    const lossesCount = Number(losses[0].count);
+    const drawsCount = Number(draws[0].count);
+    const totalMatches = winsCount + lossesCount + drawsCount;
+    const winPercentage = totalMatches ? winsCount / totalMatches : 0;
+    const lossPercentage = totalMatches ? lossesCount / totalMatches : 0;
+    const drawPercentage = totalMatches ? drawsCount / totalMatches : 0;
+
     // add only exp for player who we are looking at
     const recentMatchesWithExp = recentMatches.map((match) => {
       if (match.player_one.id === userId) {
@@ -179,6 +178,8 @@ export class ProfileService {
       }
     });
     const friends = await this.getFriends(login);
+    // console.log('exp',user.exp);
+    console.log(winPercentage, lossPercentage, drawPercentage);
     return {
       id: user.id,
       login: user.login,
@@ -190,9 +191,9 @@ export class ProfileService {
       matchHistory: recentMatchesWithExp,
       friends: friends,
       friendship: friendshipStatus,
-      winPercentage,
-      lossPercentage,
-      drawPercentage,
+      winPercentage: winPercentage * 100,
+      lossPercentage: lossPercentage * 100,
+      drawPercentage: drawPercentage * 100,
     };
   }
 
