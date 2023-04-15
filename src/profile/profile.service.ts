@@ -155,7 +155,7 @@ export class ProfileService {
 
     // add only exp for player who we are looking at
     const recentMatchesWithExp = recentMatches.map((match) => {
-      if (match.player_one.id === userId) {
+      if (match.player_one.id === user.id) {
         return {
           player_one: match.player_one.login,
           player_two: match.player_two.login,
