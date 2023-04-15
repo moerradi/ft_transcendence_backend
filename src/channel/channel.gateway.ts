@@ -13,6 +13,7 @@ import { ConfigService } from '@nestjs/config';
 import * as jwt from 'jsonwebtoken';
 import { userPayload } from 'src/auth/types/userPayload';
 import { Channel, User } from '@prisma/client';
+import { ChannelService } from './channel.service';
 
 interface mutedUntil {
   mutedUntil: number;
@@ -28,6 +29,7 @@ export class ChannelGateway
   constructor(
     private prismaservice: PrismaService,
     private configService: ConfigService,
+    private channelService: ChannelService,
   ) {
     console.log('ChatGateway');
   }
@@ -130,10 +132,10 @@ export class ChannelGateway
       userData: Partial<User>;
       currentChannel: Partial<Channel>;
     },
-    payload: any,
+    payload: { channel_id: number; password: string },
   ) {
     client.currentChannel = await this.prismaservice.channel.findUnique({
-      where: { id: payload },
+      where: { id: payload.channel_id },
       select: {
         id: true,
         name: true,
@@ -143,26 +145,42 @@ export class ChannelGateway
     // check if user is in channel
     const userInChannel = await this.prismaservice.channel_user.findFirst({
       where: {
-        channel_id: payload,
+        channel_id: payload.channel_id,
         user_id: client.userData.id,
       },
     });
-    if (!userInChannel && client.currentChannel.type == 'PUBLIC') {
+    if (client.currentChannel.type == 'PROTECTED') {
+      const isPasswordCorrect = await this.channelService.checkChannelPassword(
+        payload.channel_id,
+        payload.password,
+      );
+      if (!isPasswordCorrect.success) {
+        return;
+      }
+      if (!userInChannel) {
+        await this.prismaservice.channel_user.create({
+          data: {
+            channel_id: payload.channel_id,
+            user_id: client.userData.id,
+            status: 'MEMBER',
+          },
+        });
+      }
+    } else if (!userInChannel && client.currentChannel.type == 'PUBLIC') {
       await this.prismaservice.channel_user.create({
         data: {
-          channel_id: payload,
+          channel_id: payload.channel_id,
           user_id: client.userData.id,
           status: 'MEMBER',
         },
       });
-    }
-    if (!userInChannel && client.currentChannel.type == 'PRIVATE') {
+    } else if (!userInChannel && client.currentChannel.type == 'PRIVATE') {
       return;
     }
     if (userInChannel && userInChannel.status == 'BANNED') {
       return;
     }
-    client.join(payload);
+    client.join(payload.channel_id.toString());
   }
 
   @SubscribeMessage('channel:leave')

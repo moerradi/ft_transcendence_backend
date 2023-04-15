@@ -151,9 +151,12 @@ export class ChannelController {
     @Req() req,
     @Body() data: { channelId: number; password: string },
   ) {
-    return this.channelService.checkChannelPassword(
+    const passwordState = await this.channelService.checkChannelPassword(
       data.channelId,
       data.password,
     );
+    if (passwordState.success != true)
+      throw new BadRequestException(passwordState.message);
+    else return passwordState;
   }
 }

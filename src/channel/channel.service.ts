@@ -557,12 +557,12 @@ export class ChannelService {
       },
     });
     if (!channel) {
-      throw new BadRequestException('Channel not found');
+      return { message: 'Channel not found', success: false };
     }
     // hash and compare
     const isMatch = await argon2.verify(channel.password, password);
     if (!isMatch) {
-      throw new ForbiddenException('Password is incorrect');
+      return { message: 'Password is incorrect', success: false };
     }
     return { message: 'Password is correct', success: true };
   }
