@@ -180,6 +180,7 @@ export class ChannelGateway
     if (userInChannel && userInChannel.status == 'BANNED') {
       return;
     }
+    console.log(client.userData, 'joined channel', payload.channel_id);
     client.join(payload.channel_id.toString());
   }
 
