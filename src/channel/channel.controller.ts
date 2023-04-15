@@ -147,10 +147,13 @@ export class ChannelController {
 
   @Post('auth')
   @UseGuards(JwtAccessTokenGuard)
-  async auth(@Req() req) {
+  async auth(
+    @Req() req,
+    @Body() data: { channelId: number; password: string },
+  ) {
     return this.channelService.checkChannelPassword(
-      req.body.channelId,
-      req.body.password,
+      data.channelId,
+      data.password,
     );
   }
 }
