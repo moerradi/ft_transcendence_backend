@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common';
 import { ChannelType, ChannelUserStatus } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 import * as argon2 from 'argon2';
@@ -542,5 +542,22 @@ export class ChannelService {
       },
     });
     return { message: 'Member banned', success: true };
+  }
+
+  async checkChannelPassword(channelId: number, password: string) {
+    const channel = await this.prisma.channel.findUnique({
+      where: {
+        id: channelId,
+      },
+    });
+    if (!channel) {
+      throw new BadRequestException('Channel not found');
+    }
+    // hash and compare
+    const isMatch = await argon2.verify(channel.password, password);
+    if (!isMatch) {
+      throw new ForbiddenException('Password is incorrect');
+    }
+    return { message: 'Password is correct', success: true };
   }
 }

@@ -144,4 +144,13 @@ export class ChannelController {
     console.log(data.memberId);
     return this.channelService.banUser(id, req.user.id, data.memberId);
   }
+
+  @Post('auth')
+  @UseGuards(JwtAccessTokenGuard)
+  async auth(@Req() req) {
+    return this.channelService.checkChannelPassword(
+      req.body.channelId,
+      req.body.password,
+    );
+  }
 }

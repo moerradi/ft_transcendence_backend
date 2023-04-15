@@ -243,4 +243,17 @@ export class ChannelGateway
       user_id: payload.member_id,
     });
   }
+
+  @SubscribeMessage('dms:block')
+  async handleBlock(
+    client: Socket & {
+      userData: Partial<User>;
+    },
+    payload: any,
+  ) {
+    console.log('dms.block', payload);
+    this.server.emit('dms:block', {
+      user_id: payload.member_id,
+    });
+  }
 }
