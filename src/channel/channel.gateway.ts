@@ -112,7 +112,7 @@ export class ChannelGateway
         content: payload.message,
       },
     });
-    this.server.to(payload.id).emit('message', {
+    this.server.to(payload.id).emit('channel:message', {
       channel_id: payload.id,
       author_id: client.userData.id,
       content: payload.message,
@@ -163,5 +163,60 @@ export class ChannelGateway
   @SubscribeMessage('channel:leave')
   handleLeave(client: Socket, payload: any) {
     client.leave(payload);
+  }
+
+  dmRoomId(id1: number, id2: number) {
+    return [id1, id2].sort((a, b) => a - b).join('-');
+  }
+
+  @SubscribeMessage('dms:join')
+  async handleDMJoin(
+    client: Socket & {
+      userData: Partial<User>;
+    },
+    payload: number,
+  ) {
+    client.join(this.dmRoomId(client.userData.id, payload));
+  }
+
+  @SubscribeMessage('dms:leave')
+  handleDMLeave(
+    client: Socket & {
+      userData: Partial<User>;
+    },
+    payload: number,
+  ) {
+    client.leave(this.dmRoomId(client.userData.id, payload));
+  }
+
+  @SubscribeMessage('dms:message')
+  async handleDMMessage(
+    client: Socket & {
+      userData: Partial<User>;
+    },
+    payload: any,
+  ) {
+    if (payload.message == '') {
+      return;
+    }
+    await this.prismaservice.direct_message.create({
+      data: {
+        author_id: client.userData.id,
+        recipient_id: payload.id,
+        content: payload.message,
+      },
+    });
+    this.server
+      .to(this.dmRoomId(client.userData.id, payload.id))
+      .emit('dms:message', {
+        author_id: client.userData.id,
+        recipient_id: payload.id,
+        content: payload.message,
+        sent_at: new Date(),
+        author: {
+          login: client.userData.login,
+          avatar_url: client.userData.avatar_url,
+        },
+      });
   }
 }

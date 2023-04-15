@@ -8,7 +8,7 @@ import { Request } from 'express';
 export class FriendController {
   constructor(private readonly friendService: FriendService) {}
 
-  @Get(':login')
+  @Get('friends/:login')
   @UseGuards(JwtAccessTokenGuard)
   async getFriends(@Param('login') login: string) {
     return await this.friendService.getFriends(login);
