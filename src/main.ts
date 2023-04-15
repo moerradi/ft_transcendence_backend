@@ -8,11 +8,12 @@ import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { IoAdapter } from '@nestjs/platform-socket.io';
-
+import { HttpExceptionFilter } from './exception.filter';
 
 async function bootstrap() {
-	const app = await NestFactory.create<NestExpressApplication>(AppModule);
-	app.useWebSocketAdapter(new IoAdapter(app));
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  app.useGlobalFilters(new HttpExceptionFilter());
+  app.useWebSocketAdapter(new IoAdapter(app));
   app.useStaticAssets(join(__dirname, '..', 'public'), {
     prefix: '/static/',
   });

@@ -24,15 +24,13 @@ export class CreateChannelDto {
 }
 
 export class UpdateChannelDto {
-  @IsNumber()
-  id: number;
   @IsString()
   @IsOptional()
   name?: string;
   @IsString()
   @IsOptional()
-  icon_url?: string;
-  @IsString()
-  @IsOptional()
   password?: string;
+  @IsEnum(ChannelType)
+  @IsOptional()
+  type: ChannelType;
 }

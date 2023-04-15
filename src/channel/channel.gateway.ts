@@ -13,11 +13,11 @@ import { ConfigService } from '@nestjs/config';
 import * as jwt from 'jsonwebtoken';
 import { userPayload } from 'src/auth/types/userPayload';
 import { Channel, User } from '@prisma/client';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { ChannelService } from './channel.service';
 
 interface mutedUntil {
   mutedUntil: number;
-  mutedBy: number;
   userId: number;
 }
 
@@ -114,7 +114,7 @@ export class ChannelGateway
         content: payload.message,
       },
     });
-    this.server.to(payload.id).emit('channel:message', {
+    this.server.to(payload.id.toString()).emit('channel:message', {
       channel_id: payload.id,
       author_id: client.userData.id,
       content: payload.message,
@@ -185,8 +185,110 @@ export class ChannelGateway
   }
 
   @SubscribeMessage('channel:leave')
-  handleLeave(client: Socket, payload: any) {
-    client.leave(payload);
+  handleLeave(client: Socket, payload: number) {
+    client.leave(payload.toString());
+  }
+
+  @SubscribeMessage('channel:mute')
+  async handleMute(
+    client: Socket & {
+      userData: Partial<User>;
+      currentChannel: Partial<Channel>;
+    },
+    payload: { channel_id: number; user_id: number; time: number },
+  ) {
+    const userInChannel = await this.prismaservice.channel_user.findFirst({
+      where: {
+        channel_id: payload.channel_id,
+        user_id: client.userData.id,
+      },
+    });
+    if (!userInChannel) {
+      return;
+    }
+    if (userInChannel.status != 'OWNER' && userInChannel.status != 'ADMIN') {
+      return;
+    }
+    // target user
+    const targetUser = await this.prismaservice.user.findUnique({
+      where: {
+        id: payload.user_id,
+      },
+    });
+    if (!targetUser) {
+      return;
+    }
+    // check if user is in channel
+    const targetUserInChannel = await this.prismaservice.channel_user.findFirst(
+      {
+        where: {
+          channel_id: payload.channel_id,
+          user_id: targetUser.id,
+        },
+      },
+    );
+    if (!targetUserInChannel) {
+      return;
+    }
+    // check if targetuse isowner
+    if (targetUserInChannel.status == 'OWNER') {
+      return;
+    }
+    // check if targetuser is admin
+    if (
+      targetUserInChannel.status == 'ADMIN' &&
+      userInChannel.status != 'OWNER'
+    ) {
+      return;
+    }
+    // ADD TO MUTED USERS
+    const muted = this.mutedUsers.get(payload.channel_id);
+    if (muted) {
+      muted.push({
+        userId: targetUser.id,
+        mutedUntil: Date.now() + payload.time,
+      });
+    } else {
+      this.mutedUsers.set(payload.channel_id, [
+        {
+          userId: targetUser.id,
+          mutedUntil: Date.now() + payload.time,
+        },
+      ]);
+    }
+    // SEND TO CHANNEL
+    this.server.to(payload.channel_id.toString()).emit('channel:mute', {
+      channel_id: payload.channel_id,
+      user_id: targetUser.id,
+      time: payload.time,
+    });
+    // also store in db
+    await this.prismaservice.channel_user.update({
+      where: {
+        cid: {
+          channel_id: payload.channel_id,
+          user_id: targetUser.id,
+        },
+      },
+      data: {
+        muted_until_time: new Date(Date.now() + payload.time),
+      },
+    });
+  }
+
+  @Cron(CronExpression.EVERY_10_SECONDS)
+  async handleMutedUsers() {
+    this.mutedUsers.forEach((arr, channelId) => {
+      arr.forEach((mutedUser, index) => {
+        if (mutedUser.mutedUntil < Date.now()) {
+          this.server.to(channelId.toString()).emit('channel:unmute', {
+            channel_id: channelId,
+            user_id: mutedUser.userId,
+          });
+          arr.splice(index, 1);
+        }
+      });
+    });
   }
 
   dmRoomId(id1: number, id2: number) {

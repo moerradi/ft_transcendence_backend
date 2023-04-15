@@ -8,10 +8,12 @@ import { FriendModule } from './friend/friend.module';
 import { HomeModule } from './home/home.module';
 import { ChannelModule } from './channel/channel.module';
 import { MessageModule } from './message/message.module';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    ScheduleModule.forRoot(),
     AuthModule,
     PrismaModule,
     ProfileModule,

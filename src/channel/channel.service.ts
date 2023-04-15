@@ -36,10 +36,11 @@ export class ChannelService {
           },
         },
         status: true,
+        muted_until_time: true,
       },
     });
     const channelsWithAdminOwnerInfo = userChannels.map(
-      ({ channel, status }) => {
+      ({ channel, status, muted_until_time }) => {
         const latestMessageSentAt = channel.messages.reduce(
           (latest, message) => {
             return latest > message.sent_at ? latest : message.sent_at;
@@ -51,6 +52,7 @@ export class ChannelService {
           ...channel,
           isAdmin: status === 'ADMIN',
           isOwner: channel.owner_id === userId,
+          isMuted: muted_until_time > new Date(),
           latestMessageSentAt: latestMessageSentAt,
         };
       },
@@ -245,12 +247,8 @@ export class ChannelService {
     return channel;
   }
 
-  async updateChannel(
-    channelId: number,
-    data: UpdateChannelDto,
-    userId: number,
-  ) {
-    const { name, password, icon_url } = data;
+  async updateChannel(channelId: number, data: UpdateChannelDto) {
+    // find channel
     const channel = await this.prisma.channel.findUnique({
       where: {
         id: channelId,
@@ -259,36 +257,15 @@ export class ChannelService {
     if (!channel) {
       throw new BadRequestException('Channel not found');
     }
-    if (channel.owner_id !== userId) {
-      throw new BadRequestException('You are not the owner of this channel');
-    }
-    if (
-      channel.type === ChannelType.PROTECTED &&
-      (password === '' || password === undefined)
-    ) {
-      throw new BadRequestException(
-        'Password is required for protected channels',
-      );
-    }
-    const newPassword =
-      channel.type === ChannelType.PROTECTED
-        ? await this.hashPassword(password)
-        : '';
-    return await this.prisma.channel.update({
+    const { name, type, password } = data;
+    await this.prisma.channel.update({
       where: {
         id: channelId,
       },
       data: {
         name: name,
-        password: newPassword,
-        icon_url: icon_url,
-      },
-      select: {
-        id: true,
-        name: true,
-        type: true,
-        icon_url: true,
-        owner_id: true,
+        type: type,
+        password: password,
       },
     });
   }

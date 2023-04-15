@@ -123,7 +123,7 @@ export class ChannelController {
   ) {
     if (!(await this.channelService.isOwner(req.user.id, id)))
       throw new BadRequestException('You are not the owner of this channel');
-    return this.channelService.updateChannel(id, data, req.user.id);
+    return this.channelService.updateChannel(id, data);
   }
 
   @Delete(':id')
