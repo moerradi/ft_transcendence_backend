@@ -183,4 +183,28 @@ export class ChannelController {
   async acceptInvite(@Param('id', ParseIntPipe) id: number, @Req() req) {
     return this.channelService.acceptInvite(req.user.id, id);
   }
+
+  @Post('/promote/:id')
+  @UseGuards(JwtAccessTokenGuard)
+  async promoteMember(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req,
+    @Body() data: { memberId: number },
+  ) {
+    if (!(await this.channelService.isOwner(req.user.id, id)))
+      throw new BadRequestException('You are not the owner of this channel');
+    return this.channelService.promoteUser(id, data.memberId);
+  }
+
+  @Post('/demote/:id')
+  @UseGuards(JwtAccessTokenGuard)
+  async demoteMember(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req,
+    @Body() data: { memberId: number },
+  ) {
+    if (!(await this.channelService.isOwner(req.user.id, id)))
+      throw new BadRequestException('You are not the owner of this channel');
+    return this.channelService.demoteUser(id, data.memberId);
+  }
 }

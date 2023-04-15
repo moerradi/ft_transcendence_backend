@@ -544,7 +544,7 @@ export class ChannelService {
     return { message: 'Password is correct', success: true };
   }
 
-  async promotUser(channelId: number, memberId: number) {
+  async promoteUser(channelId: number, memberId: number) {
     const channel = await this.prisma.channel.findUnique({
       where: {
         id: channelId,
