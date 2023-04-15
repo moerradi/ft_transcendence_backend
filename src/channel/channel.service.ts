@@ -258,6 +258,7 @@ export class ChannelService {
       throw new BadRequestException('Channel not found');
     }
     const { name, type, password } = data;
+    const hashedPassword = (await this.hashPassword(password)) || '';
     await this.prisma.channel.update({
       where: {
         id: channelId,
@@ -265,7 +266,7 @@ export class ChannelService {
       data: {
         name: name,
         type: type,
-        password: password,
+        password: hashedPassword,
       },
     });
     return { message: 'Channel updated', success: true };
