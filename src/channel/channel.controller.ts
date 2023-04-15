@@ -159,4 +159,28 @@ export class ChannelController {
       throw new BadRequestException(passwordState.message);
     else return passwordState;
   }
+
+  @Get('/invites')
+  @UseGuards(JwtAccessTokenGuard)
+  async getInvites(@Req() req) {
+    return this.channelService.getChannelInvites(req.user.id);
+  }
+
+  @Post('/invites/:id')
+  @UseGuards(JwtAccessTokenGuard)
+  async createInvite(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req,
+    @Body() data: { invitee_id: number },
+  ) {
+    if (!(await this.channelService.isOwner(req.user.id, id)))
+      throw new BadRequestException('You are not the owner of this channel');
+    return this.channelService.sendInvite(data.invitee_id, id);
+  }
+
+  @Post('/invites/:id/accept')
+  @UseGuards(JwtAccessTokenGuard)
+  async acceptInvite(@Param('id', ParseIntPipe) id: number, @Req() req) {
+    return this.channelService.acceptInvite(req.user.id, id);
+  }
 }

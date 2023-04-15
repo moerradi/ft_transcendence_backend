@@ -543,4 +543,159 @@ export class ChannelService {
     }
     return { message: 'Password is correct', success: true };
   }
+
+  async promotUser(channelId: number, memberId: number) {
+    const channel = await this.prisma.channel.findUnique({
+      where: {
+        id: channelId,
+      },
+    });
+    if (!channel) {
+      throw new BadRequestException('Channel not found');
+    }
+    const member = await this.prisma.channel_user.findUnique({
+      where: {
+        cid: {
+          channel_id: channelId,
+          user_id: memberId,
+        },
+      },
+    });
+    if (!member) {
+      throw new BadRequestException('Member not found');
+    }
+    if (member.status === ChannelUserStatus.OWNER) {
+      throw new BadRequestException(
+        'You cannot promote the owner of the channel',
+      );
+    }
+    await this.prisma.channel_user.update({
+      where: {
+        cid: {
+          channel_id: channelId,
+          user_id: memberId,
+        },
+      },
+      data: {
+        status: ChannelUserStatus.ADMIN,
+      },
+    });
+
+    return { message: 'Member promoted', success: true };
+  }
+
+  async demoteUser(channelId: number, memberId: number) {
+    const channel = await this.prisma.channel.findUnique({
+      where: {
+        id: channelId,
+      },
+    });
+    if (!channel) {
+      throw new BadRequestException('Channel not found');
+    }
+    const member = await this.prisma.channel_user.findUnique({
+      where: {
+        cid: {
+          channel_id: channelId,
+          user_id: memberId,
+        },
+      },
+    });
+    if (!member) {
+      throw new BadRequestException('Member not found');
+    }
+    if (member.status === ChannelUserStatus.OWNER) {
+      throw new BadRequestException(
+        'You cannot demote the owner of the channel',
+      );
+    }
+    await this.prisma.channel_user.update({
+      where: {
+        cid: {
+          channel_id: channelId,
+          user_id: memberId,
+        },
+      },
+      data: {
+        status: ChannelUserStatus.MEMBER,
+      },
+    });
+  }
+
+  async getChannelInvites(userId: number) {
+    const invites = await this.prisma.channel_user.findMany({
+      where: {
+        user_id: userId,
+        status: ChannelUserStatus.INVITED,
+      },
+      include: {
+        channel: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+    return invites.map((invite) => ({
+      id: invite.channel.id,
+      name: invite.channel.name,
+    }));
+  }
+
+  async sendInvite(userId: number, channelId: number) {
+    const channel = await this.prisma.channel.findUnique({
+      where: {
+        id: channelId,
+      },
+    });
+    if (!channel) {
+      throw new BadRequestException('Channel not found');
+    }
+    await this.prisma.channel_user.create({
+      data: {
+        channel_id: channelId,
+        user_id: userId,
+        status: ChannelUserStatus.MEMBER,
+      },
+    });
+    return { message: 'Invite sent', success: true };
+  }
+
+  async acceptInvite(userId: number, channelId: number) {
+    const channel = await this.prisma.channel.findUnique({
+      where: {
+        id: channelId,
+      },
+    });
+    if (!channel) {
+      throw new BadRequestException('Channel not found');
+    }
+    const invite = await this.prisma.channel_user.findUnique({
+      where: {
+        cid: {
+          channel_id: channelId,
+          user_id: userId,
+        },
+      },
+    });
+    if (!invite) {
+      throw new BadRequestException('Invite not found');
+    }
+    if (invite.status !== ChannelUserStatus.INVITED) {
+      throw new BadRequestException('Invite not found');
+    }
+    await this.prisma.channel_user.update({
+      where: {
+        cid: {
+          channel_id: channelId,
+          user_id: userId,
+        },
+      },
+      data: {
+        status: ChannelUserStatus.MEMBER,
+      },
+    });
+    return { message: 'Invite accepted', success: true };
+  }
 }
