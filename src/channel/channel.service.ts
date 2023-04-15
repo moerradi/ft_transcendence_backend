@@ -1,4 +1,8 @@
-import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+} from '@nestjs/common';
 import { ChannelType, ChannelUserStatus } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 import * as argon2 from 'argon2';
@@ -93,7 +97,9 @@ export class ChannelService {
       where: {
         OR: [
           {
-            type: 'PUBLIC',
+            type: {
+              in: ['PUBLIC', 'PROTECTED'],
+            },
             name: {
               contains: query,
               mode: 'insensitive',
