@@ -268,6 +268,7 @@ export class ChannelService {
         password: password,
       },
     });
+    return { message: 'Channel updated', success: true };
   }
 
   async deleteChannel(channelId: number, userId: number) {
