@@ -374,7 +374,7 @@ export class ChannelGateway
   ) {
     console.log('dms.block', payload);
     this.server.emit('dms:block', {
-      user_id: payload.member_id,
+      user_id: payload.user_id,
     });
   }
 }

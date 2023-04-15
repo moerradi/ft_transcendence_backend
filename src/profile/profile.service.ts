@@ -115,11 +115,11 @@ export class ProfileService {
     const [wins, losses, draws, recentMatches] = await this.prisma.$transaction(
       [
         this.prisma
-          .$queryRaw`SELECT COUNT(*) FROM "Match" WHERE ("player_one_id" = ${userId} AND "player_one_score" > "player_two_score") OR ("player_two_id" = ${userId} AND "player_two_score" > "player_one_score");`,
+          .$queryRaw`SELECT COUNT(*) FROM "Match" WHERE ("player_one_id" = ${user.id} AND "player_one_score" > "player_two_score") OR ("player_two_id" = ${user.id} AND "player_two_score" > "player_one_score");`,
         this.prisma
-          .$queryRaw`SELECT COUNT(*) FROM "Match" WHERE ("player_one_id" = ${userId} AND "player_one_score" < "player_two_score") OR ("player_two_id" = ${userId} AND "player_two_score" < "player_one_score");`,
+          .$queryRaw`SELECT COUNT(*) FROM "Match" WHERE ("player_one_id" = ${user.id} AND "player_one_score" < "player_two_score") OR ("player_two_id" = ${user.id} AND "player_two_score" < "player_one_score");`,
         this.prisma
-          .$queryRaw`SELECT COUNT(*) FROM "Match" WHERE ("player_one_id" = ${userId} AND "player_one_score" = "player_two_score") OR ("player_two_id" = ${userId} AND "player_two_score" = "player_one_score");`,
+          .$queryRaw`SELECT COUNT(*) FROM "Match" WHERE ("player_one_id" = ${user.id} AND "player_one_score" = "player_two_score") OR ("player_two_id" = ${user.id} AND "player_two_score" = "player_one_score");`,
         this.prisma.match.findMany({
           where: {
             OR: [{ player_one_id: user.id }, { player_two_id: user.id }],
